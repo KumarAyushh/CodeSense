@@ -5,6 +5,16 @@ const path = require("path");
 const { exec } = require("child_process");
 const readlineSync = require("readline-sync");
 
+// Import diff utility (will be undefined in CLI mode, only works in VS Code)
+let showDiff = null;
+try {
+  const diffUtil = require("./src/diffUtil");
+  showDiff = diffUtil.showDiff;
+} catch (e) {
+  // Running in CLI mode, diff not available
+  showDiff = null;
+}
+
 
 
 // ✅ No fetch polyfill needed in VS Code extension
@@ -90,8 +100,26 @@ async function writeFile({ file_path, contents }) {
       console.log(`📁 Created directory: ${dir}`);
     }
     
+    // Read original content if file exists (for diff)
+    let originalContent = '';
+    const fileExists = fs.existsSync(file_path);
+    if (fileExists) {
+      originalContent = fs.readFileSync(file_path, 'utf-8');
+    }
+    
+    // Write new content
     fs.writeFileSync(file_path, contents, "utf-8");
     console.log(`✅ Writing: ${file_path}`);
+    
+    // Show diff if modifying existing file and running in VS Code
+    if (fileExists && originalContent !== contents && showDiff) {
+      try {
+        await showDiff(file_path, originalContent, contents);
+      } catch (e) {
+        console.warn('Could not show diff:', e.message);
+      }
+    }
+    
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
