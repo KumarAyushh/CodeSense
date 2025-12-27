@@ -1,17 +1,36 @@
 {
-  "name": "lec7-code-reviewer",
-  "displayName": "Lec7 AI Code Reviewer",
-  "description": "AI Code Reviewer Agent Integration",
-  "version": "0.1.0",
-  "publisher": "lec7",
+  "name": "codesense-ai",
+  "displayName": "CodeSense AI - Code Reviewer & Assistant",
+  "description": "AI-powered code reviewer with multi-provider support (Gemini, OpenAI). Get intelligent code suggestions, reviews, and automated fixes with visual diff comparisons.",
+  "version": "1.0.0",
+  "publisher": "KumarAyushh",
+  "icon": "media/iconMain.png",
+  "galleryBanner": {
+    "color": "#1f4fd8",
+    "theme": "dark"
+  },
+  "keywords": [
+    "ai",
+    "code-review",
+    "gemini",
+    "openai",
+    "chatgpt",
+    "assistant",
+    "code-assistant",
+    "refactoring",
+    "diff",
+    "code-quality"
+  ],
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
+    "Programming Languages",
+    "Machine Learning",
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./src/extension.js",
   "contributes": {
@@ -19,7 +38,7 @@
       "activitybar": [
         {
           "id": "lec7-container",
-          "title": "Lec7 Reviewer",
+          "title": "CodeSense AI",
           "icon": "media/icon.svg"
         }
       ]
@@ -29,7 +48,8 @@
         {
           "type": "webview",
           "id": "lec7.chatView",
-          "name": "AI Review Chat"
+          "name": "AI Chat",
+          "icon": "media/icon.svg"
         }
       ]
     }

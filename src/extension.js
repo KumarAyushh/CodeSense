@@ -3,7 +3,7 @@ const { ChatViewProvider } = require('./ChatViewProvider');
 const { cleanupOldDiffs } = require('./diffUtil');
 
 async function activate(context) {
-    console.log('Lec7 Code Reviewer extension is now active!');
+    console.log('CodeSense AI extension is now active!');
 
     // Cleanup old diff temp files on startup
     cleanupOldDiffs();

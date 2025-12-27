@@ -1,0 +1,46 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# VS Code
+.vscode/
+.vscode-test/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build
+out/
+dist/
+*.vsix
+
+# Development files
+vscode-integration.js
+.eslintrc.json
+tsconfig.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (keep only README in package)
+docs/
+
+# Tests
+test/
+tests/
+*.test.js
+*.spec.js
