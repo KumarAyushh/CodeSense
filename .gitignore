@@ -1,0 +1,68 @@
+# =========================
+# Node.js
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.test
+.env.production
+
+# =========================
+# Build / Dist
+# =========================
+dist/
+build/
+out/
+.next/
+.cache/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Editor / IDE
+# =========================
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# =========================
+# Coverage / Testing
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+
+# =========================
+# Lock files (optional)
+# =========================
+# Uncomment ONLY if you don't want lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

@@ -1,0 +1,58 @@
+{
+  "name": "lec7-code-reviewer",
+  "displayName": "Lec7 AI Code Reviewer",
+  "description": "AI Code Reviewer Agent Integration",
+  "version": "0.1.0",
+  "publisher": "lec7",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lec7-container",
+          "title": "Lec7 Reviewer",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "lec7-container": [
+        {
+          "type": "webview",
+          "id": "lec7.chatView",
+          "name": "AI Review Chat"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KumarAyushh/CodeSense.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KumarAyushh/CodeSense/issues"
+  },
+  "homepage": "https://github.com/KumarAyushh/CodeSense#readme",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "dotenv": "^17.2.3",
+    "openai": "^6.15.0",
+    "readline-sync": "^1.4.10"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "eslint": "^8.41.0"
+  }
+}
