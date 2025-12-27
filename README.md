@@ -12,6 +12,7 @@ An intelligent AI-powered code reviewer and assistant built directly into VS Cod
 - ⚡ **Terminal Integration** - Run commands directly from the AI assistant
 - 📝 **Conversation History** - Save and reload past conversations
 - 🎨 **Dark Theme UI** - Beautiful gradient design that matches VS Code
+- 🔄 **Diff Visualization** - Side-by-side code comparison for AI-suggested changes
 
 ## Installation
 
@@ -87,6 +88,15 @@ Install directly from the Visual Studio Marketplace (when published).
 - Delete unwanted history
 - Context-aware responses (20 message history)
 
+### Diff Visualization
+- **Automatic side-by-side comparison** when AI modifies existing code
+- **Visual changes display** with green additions and red deletions
+- **One-click review** before accepting AI changes
+- **Native VS Code diff viewer** - familiar interface
+- **Auto-cleanup** of temporary diff files (1 hour expiration)
+
+When you ask AI to fix or modify code, CodeSense automatically opens the diff view with the title **"CodeSense: AI Suggested Changes"** showing exactly what changed.
+
 ## Configuration
 
 The extension stores settings securely:
@@ -99,10 +109,11 @@ No manual configuration files needed!
 
 ### Project Structure
 ```
-Lec7/
+CodeSense/
 ├── src/
 │   ├── extension.js          # Extension entry point
-│   └── ChatViewProvider.js   # Webview UI and logic
+│   ├── ChatViewProvider.js   # Webview UI and logic
+│   └── diffUtil.js           # Diff visualization utility
 ├── media/
 │   ├── icon.svg              # Extension icon
 │   ├── main.js               # Webview frontend
@@ -179,7 +190,6 @@ MIT License - see LICENSE file for details
 
 - [ ] Support for Anthropic Claude
 - [ ] Support for Groq
-- [ ] Code diff visualization
 - [ ] Multi-file refactoring
 - [ ] Custom prompt templates
 - [ ] Export conversations to markdown
