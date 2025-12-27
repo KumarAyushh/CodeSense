@@ -53,6 +53,11 @@ class ChatViewProvider {
             this._agent.stopGeneration();
           }
           break;
+        case 'resetConversation':
+          // Reset the agent to clear conversation history
+          this._agent = null;
+          this._view.webview.postMessage({ type: 'systemMessage', text: '🔄 Conversation reset. Starting fresh!' });
+          break;
         case 'saveConversation':
           await this._saveConversation(data.conversation);
           break;
@@ -74,16 +79,9 @@ class ChatViewProvider {
     const apiKey = await this._context.secrets.get('ai_api_key');
     const provider = await this._context.secrets.get('ai_provider');
     
-    // Set HTML
-    this._view.webview.html = this._getHtmlForWebview(this._view.webview);
-    
-    // If credentials exist, switch to chat immediately
-    if (apiKey && provider) {
-      // Give the webview a moment to load, then switch
-      setTimeout(() => {
-        this._view.webview.postMessage({ type: 'switchToChat' });
-      }, 50);
-    }
+    // Set HTML with initial screen based on whether we have credentials
+    const hasCredentials = !!(apiKey && provider);
+    this._view.webview.html = this._getHtmlForWebview(this._view.webview, hasCredentials);
   }
 
   async _handleUserMessage(text) {
@@ -139,7 +137,28 @@ class ChatViewProvider {
       await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, this._toolFunctions, this._tools);
 
     } catch (error) {
-      this._view.webview.postMessage({ type: 'aiResponse', text: 'Error: ' + error.message });
+      // Provide user-friendly error messages
+      let errorMessage = 'Error: ';
+      const errMsg = error.message || '';
+      
+      if (errMsg.includes('Network connection failed') || errMsg.includes('fetch failed')) {
+        errorMessage += '🌐 Network connection failed. Please check your internet connection and try again.';
+      } else if (errMsg.includes('Invalid conversation state') || errMsg.includes('could not be recovered')) {
+        errorMessage += '⚠️ Conversation state error. Please click the reset button to start a new conversation.';
+        // Reset agent to clear history
+        this._agent = null;
+      } else if (errMsg.includes('API key') || errMsg.includes('PERMISSION_DENIED')) {
+        errorMessage += '🔑 API key error. Please check your API key and try again.';
+        this._view.webview.postMessage({ type: 'requestApiKey' });
+      } else if (errMsg.includes('INVALID_ARGUMENT') || errMsg.includes('function call')) {
+        errorMessage += '⚠️ API error. Resetting conversation...';
+        this._agent = null;
+      } else {
+        errorMessage += errMsg || 'An unexpected error occurred.';
+      }
+      
+      this._view.webview.postMessage({ type: 'aiResponse', text: errorMessage });
+      console.error('Error in _handleUserMessage:', error);
     } finally {
       this._view.webview.postMessage({ type: 'aiThinking', active: false });
     }
@@ -191,7 +210,7 @@ class ChatViewProvider {
     await this._context.globalState.update('chat_history', history);
   }
 
-  _getHtmlForWebview(webview) {
+  _getHtmlForWebview(webview, hasCredentials = false) {
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -661,9 +680,6 @@ class ChatViewProvider {
   opacity: 1;
 }
 
-    }
-
-
   </style>
 </head>
 <body>
@@ -679,7 +695,7 @@ class ChatViewProvider {
   </div>
 
   <!-- WELCOME -->
-  <div id="welcome-screen" class="screen center-screen fade-in">
+  <div id="welcome-screen" class="screen center-screen fade-in${hasCredentials ? ' hidden' : ''}">
   <div class="logo-container">
     <div class="code-logo">&lt;/&gt;</div>
   </div>
@@ -747,13 +763,14 @@ class ChatViewProvider {
 
 
   <!-- CHAT -->
-  <div id="chat-screen" class="screen hidden fade-in">
+  <div id="chat-screen" class="screen${hasCredentials ? '' : ' hidden'} fade-in">
     <div class="chat-header">
       <button id="menu-btn" class="icon-btn" title="Menu"><i class="fa-solid fa-bars"></i></button>
       <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; align-items: center; justify-content: center;">
         <span style="font-weight: 700; font-size: 1.1rem; background: linear-gradient(135deg, #58a6ff, #3a7cff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1;">&lt;/&gt;</span>
         <span style="font-weight: 700; font-size: 1.1rem; background: linear-gradient(135deg, #58a6ff, #3a7cff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1;">CodeSense</span>
       </div>
+      <button id="reset-btn" class="icon-btn" title="Reset Conversation"><i class="fa-solid fa-rotate-right"></i></button>
       <button id="settings-btn" class="icon-btn" title="Change API Key"><i class="fa-solid fa-gear"></i></button>
     </div>
     
@@ -859,6 +876,24 @@ class ChatViewProvider {
         inputs.apiKey.style.borderColor = '';
         // Show config screen
         showScreen('config');
+      });
+    }
+
+    // Reset button - reset conversation
+    const resetBtn = document.getElementById('reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (confirm('Reset conversation? This will clear the current chat history.')) {
+          vscode.postMessage({ type: 'resetConversation' });
+          // Clear messages except welcome message
+          const messagesContainer = document.getElementById('messages-container');
+          messagesContainer.innerHTML = \`
+            <div class="message ai">
+              <div class="avatar">🤖</div>
+              <div class="content">Hello! I'm ready to help you with your code. What would you like to build today?</div>
+            </div>
+          \`;
+        }
       });
     }
 

@@ -49,6 +49,85 @@ class MultiProviderAgent {
     }
   }
 
+  /**
+   * Validates and sanitizes conversation history to ensure proper turn order for Gemini API
+   * Gemini requires: user -> model -> user (with function responses) -> model
+   * Function calls MUST be followed by function responses from user
+   */
+  _validateAndSanitizeHistory(history) {
+    if (!history || history.length === 0) return [];
+
+    const sanitized = [];
+    
+    for (let i = 0; i < history.length; i++) {
+      const msg = history[i];
+      
+      // Skip invalid messages
+      if (!msg || !msg.role || !msg.parts || msg.parts.length === 0) {
+        console.warn(`⚠️ Skipping invalid message at index ${i}`);
+        continue;
+      }
+
+      // Check if this is a function call from model
+      const hasFunctionCall = msg.role === 'model' && msg.parts.some(p => p.functionCall);
+      
+      if (hasFunctionCall) {
+        // Look ahead to check if there's a corresponding function response
+        const nextMsg = history[i + 1];
+        const hasValidResponse = nextMsg && 
+          nextMsg.role === 'user' && 
+          nextMsg.parts.some(p => p.functionResponse);
+        
+        if (!hasValidResponse) {
+          // Skip this function call - no valid response follows
+          console.warn(`⚠️ Skipping orphaned function call at index ${i}`);
+          continue;
+        }
+      }
+
+      sanitized.push(msg);
+    }
+
+    // Final validation: ensure history doesn't end with a function call
+    if (sanitized.length > 0) {
+      const lastMsg = sanitized[sanitized.length - 1];
+      if (lastMsg.role === 'model' && lastMsg.parts.some(p => p.functionCall)) {
+        // Remove the trailing function call
+        sanitized.pop();
+        console.warn('⚠️ Removed trailing function call from history');
+      }
+    }
+
+    // Ensure first message is from user (Gemini requirement)
+    if (sanitized.length > 0 && sanitized[0].role !== 'user') {
+      console.warn('⚠️ History must start with user message, resetting');
+      return [];
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Simple validation check (legacy method for compatibility)
+   */
+  _validateHistory(history) {
+    if (!history || history.length === 0) return true;
+    
+    const lastMessage = history[history.length - 1];
+    
+    // History should not end with a model function call
+    if (lastMessage.role === 'model' && lastMessage.parts.some(p => p.functionCall)) {
+      return false;
+    }
+    
+    // First message must be user
+    if (history[0].role !== 'user') {
+      return false;
+    }
+
+    return true;
+  }
+
   async generateContent(config) {
     const normalizedProvider = this.provider.toLowerCase();
 
@@ -216,11 +295,18 @@ class MultiProviderAgent {
     };
 
     while (true) {
-      const result = await this.generateContent({
-        model: this.model,
-        contents: History,
-        config: {
-          systemInstruction: `You are an AI Code Engineer assistant in a chat interface.
+      // Sanitize history before each API call
+      const sanitizedHistory = this._validateAndSanitizeHistory(History);
+      History.length = 0;
+      History.push(...(sanitizedHistory.length > 0 ? sanitizedHistory : [initialPrompt]));
+
+      let result;
+      try {
+        result = await this.generateContent({
+          model: this.model,
+          contents: History,
+          config: {
+            systemInstruction: `You are an AI Code Engineer assistant in a chat interface.
 
 COMMUNICATION STYLE:
 - Be conversational and direct - you're chatting, not writing documentation
@@ -246,23 +332,59 @@ IMPORTANT:
 - Focus on doing what the user asked
 
 Now help the user with their code.`,
-          tools,
-        },
-      });
+            tools,
+          },
+        });
+      } catch (apiError) {
+        const errorMsg = apiError.message || String(apiError);
+        if (errorMsg.includes('function call turn') || errorMsg.includes('INVALID_ARGUMENT')) {
+          console.error('🔴 Conversation state error, resetting:', errorMsg);
+          History.length = 0;
+          History.push(initialPrompt);
+          continue;
+        }
+        throw apiError;
+      }
 
       if (result.functionCalls?.length > 0) {
+        // Add the model's function call to history FIRST
+        History.push({ 
+          role: "model", 
+          parts: result.functionCalls.map(fc => ({ functionCall: fc }))
+        });
+
+        // Execute all function calls and collect responses
+        const functionResponses = [];
         for (const functionCall of result.functionCalls) {
           const { name, args } = functionCall;
 
           console.log(`🔧 Tool: ${name}`);
-          const toolResponse = await toolFunctions[name](args);
-
-          History.push({ role: "model", parts: [{ functionCall }] });
-          History.push({
-            role: "user",
-            parts: [{ functionResponse: { name, response: { result: toolResponse } } }],
-          });
+          
+          try {
+            const toolResponse = await toolFunctions[name](args);
+            functionResponses.push({
+              functionResponse: { 
+                name, 
+                response: { result: toolResponse } 
+              }
+            });
+          } catch (toolError) {
+            console.error(`🔴 Tool error for ${name}:`, toolError.message);
+            functionResponses.push({
+              functionResponse: { 
+                name, 
+                response: { error: toolError.message } 
+              }
+            });
+          }
         }
+
+        // Add all function responses in a single user turn
+        // CRITICAL: function responses must be in a "user" turn for Gemini
+        History.push({
+          role: "user",
+          parts: functionResponses
+        });
       } else {
         let text = (typeof result.text === "function" ? result.text() : result.text) || "";
         text = text.trim();
@@ -300,10 +422,18 @@ Now help the user with their code.`,
 
     const trimHistory = () => {
       if (this.history.length > MAX_HISTORY_LENGTH) {
-        this.history = this.history.slice(-MAX_HISTORY_LENGTH);
-        console.log(`📊 History trimmed to ${MAX_HISTORY_LENGTH} messages`);
+        // Keep first user message and recent messages
+        const firstUserMsg = this.history.find(m => m.role === 'user' && m.parts.some(p => p.text));
+        const recentMessages = this.history.slice(-(MAX_HISTORY_LENGTH - 1));
+        this.history = firstUserMsg ? [firstUserMsg, ...recentMessages] : recentMessages;
+        // Re-sanitize after trimming
+        this.history = this._validateAndSanitizeHistory(this.history);
+        console.log(`📊 History trimmed to ${this.history.length} messages`);
       }
     };
+
+    // Sanitize existing history before adding new message
+    this.history = this._validateAndSanitizeHistory(this.history);
 
     // Add user message to history
     this.history.push({
@@ -316,18 +446,33 @@ Now help the user with their code.`,
 
     const MAX_TURNS = 15;
     let turn = 0;
+    let retryCount = 0;
+    const MAX_RETRIES = 2;
 
     try {
       while (turn < MAX_TURNS) {
         turn++;
         console.log(`\n🔄 Turn ${turn}/${MAX_TURNS}`);
 
-        // Generate response
-        const result = await this.generateContent({
-          model: this.model,
-          contents: this.history,
-          config: {
-            systemInstruction: `You are CodeSense an AI coding assistant built by Kumar Ayush. 🤖
+        // Validate and sanitize history before making API call
+        this.history = this._validateAndSanitizeHistory(this.history);
+        
+        if (this.history.length === 0) {
+          // History was completely cleared, add user message back
+          this.history.push({
+            role: "user",
+            parts: [{ text: `${userMessage}. Working directory: ${directoryPath}` }]
+          });
+        }
+
+        // Generate response with error handling
+        let result;
+        try {
+          result = await this.generateContent({
+            model: this.model,
+            contents: this.history,
+            config: {
+              systemInstruction: `You are CodeSense an AI coding assistant built by Kumar Ayush. 🤖
 
 YOUR GOAL: Analyze, Debug, and Improve the codebase.
 
@@ -347,24 +492,83 @@ IMPORTANT:
 -   Do NOT ask for permission for creation tasks - the user's request IS the permission.
 -   Keep responses professional and concise.
 -   Use emojis sparingly (🔴 for critical bugs, 🟡 for improvements).`,
-            tools,
-          },
-        });
+              tools,
+            },
+          });
+        } catch (apiError) {
+          // Handle specific API errors
+          const errorMsg = apiError.message || String(apiError);
+          
+          if (errorMsg.includes('function call turn') || errorMsg.includes('INVALID_ARGUMENT')) {
+            console.error('🔴 Conversation state error:', errorMsg);
+            
+            if (retryCount < MAX_RETRIES) {
+              retryCount++;
+              console.log(`🔄 Retry ${retryCount}/${MAX_RETRIES}: Resetting conversation state...`);
+              messageCallback('⚠️ Fixing conversation state, please wait...');
+              
+              // Reset history completely and start fresh
+              this.history = [{
+                role: "user",
+                parts: [{ text: `${userMessage}. Working directory: ${directoryPath}` }]
+              }];
+              continue; // Retry with clean history
+            } else {
+              throw new Error('Conversation state could not be recovered. Please start a new conversation.');
+            }
+          } else if (errorMsg.includes('fetch failed') || apiError.name === 'TypeError') {
+            console.error('🔴 Network error:', errorMsg);
+            throw new Error('Network connection failed. Please check your internet connection and try again.');
+          } else {
+            throw apiError; // Re-throw other errors
+          }
+        }
+
+        // Reset retry count on successful response
+        retryCount = 0;
 
         // Handle tool calls
         if (result.functionCalls?.length > 0) {
+          // Add the model's function call to history
+          const functionCallParts = result.functionCalls.map(fc => ({ functionCall: fc }));
+          this.history.push({ 
+            role: "model", 
+            parts: functionCallParts
+          });
+
+          // Execute all function calls and collect responses
+          const functionResponses = [];
           for (const functionCall of result.functionCalls) {
             const { name, args } = functionCall;
 
             console.log(`🔧 Tool: ${name}`);
-            const toolResponse = await toolFunctions[name](args);
-
-            this.history.push({ role: "model", parts: [{ functionCall }] });
-            this.history.push({
-              role: "user",
-              parts: [{ functionResponse: { name, response: { result: toolResponse } } }],
-            });
+            
+            try {
+              const toolResponse = await toolFunctions[name](args);
+              functionResponses.push({
+                functionResponse: { 
+                  name, 
+                  response: { result: toolResponse } 
+                }
+              });
+            } catch (toolError) {
+              console.error(`🔴 Tool error for ${name}:`, toolError.message);
+              functionResponses.push({
+                functionResponse: { 
+                  name, 
+                  response: { error: toolError.message } 
+                }
+              });
+            }
           }
+
+          // Add all function responses in a single user turn
+          // This is CRITICAL for Gemini - function responses MUST be in a user turn
+          this.history.push({
+            role: "user",
+            parts: functionResponses
+          });
+
           // Loop continues to generate next response based on tool output
         } else {
           // Text response - likely final answer or question
