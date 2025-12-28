@@ -1165,6 +1165,9 @@ class ChatViewProvider {
         // Clear API key input
         inputs.apiKey.value = '';
         inputs.apiKey.style.borderColor = '';
+        // Clear apiConfigured flag so user must re-enter key
+        apiConfigured = false;
+        saveState();
         // Send reset message to extension
         vscode.postMessage({ type: 'resetApiKey' });
       });
@@ -1281,16 +1284,22 @@ class ChatViewProvider {
     const previousState = vscode.getState() || {};
     let currentConversationId = previousState.currentConversationId || null;
     let currentMessages = previousState.currentMessages || [];
+    let apiConfigured = previousState.apiConfigured || ${hasCredentials};
 
     // Save state to persist across webview visibility changes
     function saveState() {
       vscode.setState({
         currentConversationId,
-        currentMessages
+        currentMessages,
+        apiConfigured
       });
     }
 
-    // Restore messages from previous state on load
+    // Restore screen and messages from previous state on load
+    if (apiConfigured) {
+      // Make sure we show chat screen if API was previously configured
+      showScreen('chat');
+    }
     if (currentMessages.length > 0) {
       messagesContainer.innerHTML = '';
       currentMessages.forEach(msg => {
@@ -1346,6 +1355,9 @@ class ChatViewProvider {
       }
 
       vscode.postMessage({ type: 'saveApiKey', provider, key });
+      // Mark API as configured and persist
+      apiConfigured = true;
+      saveState();
       showScreen('chat');
     });
 
