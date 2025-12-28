@@ -8,7 +8,7 @@
 .vscode-test/
 
 # Node
-node_modules/
+# node_modules/ - COMMENTED OUT: We need to include dependencies in the extension package
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

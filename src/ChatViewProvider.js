@@ -27,6 +27,11 @@ class ChatViewProvider {
       ]
     };
 
+    // Retain webview content when hidden (prevents losing chat on tab switch)
+    webviewView.onDidChangeVisibility(() => {
+      // Webview visibility changed - state is preserved via getState/setState
+    });
+
     // Check for existing API key BEFORE setting HTML
     await this._initializeWebview();
 
@@ -883,17 +888,21 @@ class ChatViewProvider {
     const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
-        if (confirm('Reset conversation? This will clear the current chat history.')) {
-          vscode.postMessage({ type: 'resetConversation' });
-          // Clear messages except welcome message
-          const messagesContainer = document.getElementById('messages-container');
-          messagesContainer.innerHTML = \`
-            <div class="message ai">
-              <div class="avatar">🤖</div>
-              <div class="content">Hello! I'm ready to help you with your code. What would you like to build today?</div>
-            </div>
-          \`;
-        }
+        // Reset conversation - no confirm dialog (not supported well in webviews)
+        vscode.postMessage({ type: 'resetConversation' });
+        // Reset conversation state variables
+        currentConversationId = null;
+        currentMessages = [];
+        // Clear persisted state
+        saveState();
+        // Clear messages and show welcome message
+        const messagesContainer = document.getElementById('messages-container');
+        messagesContainer.innerHTML = \`
+          <div class="message ai">
+            <div class="avatar">🤖</div>
+            <div class="content">Hello! I'm ready to help you with your code. What would you like to build today?</div>
+          </div>
+        \`;
       });
     }
 
@@ -965,9 +974,26 @@ class ChatViewProvider {
       });
     }
 
-    // Current Conversation State
-    let currentConversationId = null;
-    let currentMessages = [];
+    // Current Conversation State - restore from persisted state if available
+    const previousState = vscode.getState() || {};
+    let currentConversationId = previousState.currentConversationId || null;
+    let currentMessages = previousState.currentMessages || [];
+
+    // Save state to persist across webview visibility changes
+    function saveState() {
+      vscode.setState({
+        currentConversationId,
+        currentMessages
+      });
+    }
+
+    // Restore messages from previous state on load
+    if (currentMessages.length > 0) {
+      messagesContainer.innerHTML = '';
+      currentMessages.forEach(msg => {
+        addMessageUI(msg.text, msg.sender);
+      });
+    }
 
     function generateId() {
       return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -997,6 +1023,8 @@ class ChatViewProvider {
     function loadConversation(conv) {
       currentConversationId = conv.id;
       currentMessages = conv.messages || [];
+      // Persist state for webview restoration
+      saveState();
       
       messagesContainer.innerHTML = '';
       currentMessages.forEach(msg => {
@@ -1035,6 +1063,8 @@ class ChatViewProvider {
       
       // Save logic
       currentMessages.push({ text, sender });
+      // Persist state for webview restoration
+      saveState();
       if (sender === 'user' || sender === 'ai') {
         saveCurrentConversation();
       }
@@ -1103,10 +1133,9 @@ class ChatViewProvider {
           showScreen('chat');
           break;
         case 'aiResponse':
-        case 'systemMessage':
           // Remove typing indicators only when AI responds
-          const indicators = document.querySelectorAll('.message.ai .content.typing');
-          indicators.forEach(el => el.closest('.message').remove());
+          const aiIndicators = document.querySelectorAll('.message.ai .content.typing');
+          aiIndicators.forEach(el => el.closest('.message').remove());
           
           // Reset buttons
           isAIProcessing = false;
@@ -1114,6 +1143,19 @@ class ChatViewProvider {
           buttons.send.classList.remove('hidden');
           
           addMessage(message.text, 'ai');
+          break;
+        case 'systemMessage':
+          // System messages are displayed but NOT saved to conversation history
+          const sysIndicators = document.querySelectorAll('.message.ai .content.typing');
+          sysIndicators.forEach(el => el.closest('.message').remove());
+          
+          // Reset buttons
+          isAIProcessing = false;
+          buttons.stop.classList.add('hidden');
+          buttons.send.classList.remove('hidden');
+          
+          // Only display UI, don't save to history
+          addMessageUI(message.text, 'ai');
           break;
         case 'requestApiKey':
           showScreen('config');
