@@ -33,9 +33,16 @@ An intelligent AI-powered code reviewer and assistant built directly into VS Cod
 
 3. Press `F5` in VS Code to launch the Extension Development Host
 
-### From VSIX (Coming Soon)
+### From Marketplace
 
-Install directly from the Visual Studio Marketplace (when published).
+Install directly from the Visual Studio Marketplace:
+
+- Visual Studio Marketplace: https://marketplace.visualstudio.com/items?itemName=kumarayushh.codesense-ai
+
+Or install from a VSIX file (manual install):
+
+1. Download the `codesense-ai-1.0.4.vsix` file from the releases or build artifacts.
+2. In VS Code, open the Command Palette and run `Extensions: Install from VSIX...` and select the downloaded file.
 
 ## Usage
 
