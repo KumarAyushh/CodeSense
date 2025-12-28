@@ -5,14 +5,16 @@ An intelligent AI-powered code reviewer and assistant built directly into VS Cod
 ## Features
 
 - 🤖 **Multi-Provider AI Support** - Works with Google Gemini and OpenAI
-- 💬 **Interactive Chat Interface** - Beautiful chat UI with conversation history
+- 💬 **Interactive Chat Interface** - Beautiful chat UI with persistent conversation state
 - 🔒 **Secure API Key Storage** - Keys stored securely using VS Code Secrets
+- 💾 **Chat Persistence** - Conversations persist across view switches and VS Code restarts
 - 🛠️ **Code Operations** - Read, write, create, and delete files with AI assistance
 - 📁 **Directory Management** - Create folders and manage project structure
 - ⚡ **Terminal Integration** - Run commands directly from the AI assistant
 - 📝 **Conversation History** - Save and reload past conversations
 - 🎨 **Dark Theme UI** - Beautiful gradient design that matches VS Code
 - 🔄 **Diff Visualization** - Side-by-side code comparison for AI-suggested changes
+- ♻️ **Reset Conversation** - Clear chat history instantly with one click
 
 ## Installation
 
@@ -87,6 +89,8 @@ Install directly from the Visual Studio Marketplace (when published).
 - Load previous chats
 - Delete unwanted history
 - Context-aware responses (20 message history)
+- **Persistent chat state** - Messages remain when switching between VS Code views
+- **One-click reset** - Clear current conversation and start fresh instantly
 
 ### Diff Visualization
 - **Automatic side-by-side comparison** when AI modifies existing code
@@ -188,12 +192,16 @@ MIT License - see LICENSE file for details
 
 ## Roadmap
 
+- [x] Chat persistence across view switches
+- [x] One-click conversation reset
+- [x] System message handling
 - [ ] Support for Anthropic Claude
 - [ ] Support for Groq
 - [ ] Multi-file refactoring
 - [ ] Custom prompt templates
 - [ ] Export conversations to markdown
 - [ ] Settings UI for customization
+- [ ] Code bundling for reduced extension size
 
 ## Author
 
