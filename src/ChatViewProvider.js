@@ -1478,6 +1478,9 @@ class ChatViewProvider {
           // Clear the input field
           inputs.apiKey.value = '';
           inputs.apiKey.style.borderColor = '';
+          // Clear apiConfigured since backend says we need a key
+          apiConfigured = false;
+          saveState();
           // Show config screen
           showScreen('config');
           break;
