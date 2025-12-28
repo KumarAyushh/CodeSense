@@ -2,7 +2,7 @@
   "name": "codesense-ai",
   "displayName": "CodeSense AI - Code Reviewer & Assistant",
   "description": "AI-powered code reviewer with multi-provider support (Gemini, OpenAI). Get intelligent code suggestions, reviews, and automated fixes with visual diff comparisons.",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "publisher": "KumarAyushh",
   "icon": "media/iconMain.png",
   "galleryBanner": {
