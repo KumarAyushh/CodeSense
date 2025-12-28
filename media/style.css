@@ -162,3 +162,375 @@ button:hover {
     background: var(--vscode-button-secondaryBackground);
     color: var(--vscode-button-secondaryForeground);
 }
+
+/* ==========================================
+   Professional Markdown Formatting Styles
+   ========================================== */
+
+/* Base Content Styling */
+.content {
+    white-space: normal !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message.system .content {
+    padding: 12px 16px;
+}
+
+/* Paragraphs */
+.content .md-paragraph {
+    margin: 0.6em 0;
+    line-height: 1.7;
+}
+
+.content .md-paragraph:first-child {
+    margin-top: 0;
+}
+
+.content .md-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+/* Headers */
+.content .md-header {
+    font-weight: 600;
+    color: var(--vscode-editor-foreground);
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+}
+
+.content h1.md-header {
+    font-size: 1.6em;
+    border-bottom: 2px solid var(--vscode-textLink-foreground);
+    padding-bottom: 0.3em;
+    margin-top: 0.5em;
+}
+
+.content h2.md-header {
+    font-size: 1.4em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.2em;
+}
+
+.content h3.md-header {
+    font-size: 1.2em;
+}
+
+.content h4.md-header {
+    font-size: 1.1em;
+}
+
+.content h5.md-header,
+.content h6.md-header {
+    font-size: 1em;
+}
+
+/* Code Block Wrapper */
+.content .code-block-wrapper {
+    position: relative;
+    margin: 1em 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--vscode-textCodeBlock-background, #1e1e1e);
+    border: 1px solid var(--border-color);
+}
+
+.content .code-lang {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: var(--vscode-badge-background, #4d4d4d);
+    color: var(--vscode-badge-foreground, #ffffff);
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    border-bottom-right-radius: 6px;
+}
+
+.content .copy-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    border-radius: 4px;
+}
+
+.content .copy-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.content .md-code-block {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 36px 16px 16px 16px;
+    margin: 0;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    tab-size: 4;
+}
+
+.content .md-code-block code {
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+    padding: 0;
+    border: none;
+}
+
+/* Inline Code */
+.content .md-inline-code {
+    background: var(--vscode-textCodeBlock-background, rgba(110, 118, 129, 0.4));
+    color: var(--vscode-textPreformat-foreground, #f78c6c);
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+/* Syntax Highlighting */
+.content .hl-keyword {
+    color: #569cd6;
+    font-weight: 500;
+}
+
+.content .hl-string {
+    color: #ce9178;
+}
+
+.content .hl-number {
+    color: #b5cea8;
+}
+
+.content .hl-comment {
+    color: #6a9955;
+    font-style: italic;
+}
+
+.content .hl-function {
+    color: #dcdcaa;
+}
+
+/* Bold & Italic */
+.content .md-bold {
+    font-weight: 700;
+    color: var(--vscode-editor-foreground);
+}
+
+.content .md-italic {
+    font-style: italic;
+    color: var(--vscode-editor-foreground);
+}
+
+.content .md-strikethrough {
+    text-decoration: line-through;
+    opacity: 0.65;
+}
+
+/* Status Indicators */
+.content .status-error {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(244, 67, 54, 0.15);
+    color: #f44336;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #f44336;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-warning {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #ffc107;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #4caf50;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(33, 150, 243, 0.15);
+    color: #2196f3;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #2196f3;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(156, 39, 176, 0.15);
+    color: #ce93d8;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #9c27b0;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-icon {
+    font-size: 14px;
+}
+
+/* Links */
+.content .md-link {
+    color: var(--vscode-textLink-foreground, #3794ff);
+    text-decoration: none;
+    border-bottom: 1px dashed currentColor;
+    transition: all 0.2s ease;
+}
+
+.content .md-link:hover {
+    border-bottom-style: solid;
+    opacity: 0.85;
+}
+
+/* Lists */
+.content .md-unordered-list,
+.content .md-ordered-list {
+    margin: 0.8em 0;
+    padding-left: 1.8em;
+    line-height: 1.7;
+}
+
+.content .md-unordered-list {
+    list-style-type: none;
+}
+
+.content .md-unordered-list .md-list-item::before {
+    content: "•";
+    color: var(--vscode-textLink-foreground, #3794ff);
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+}
+
+.content .md-ordered-list {
+    list-style-type: decimal;
+}
+
+.content .md-list-item {
+    margin: 0.4em 0;
+    padding-left: 0.3em;
+}
+
+/* Checkboxes (Task Lists) */
+.content .md-checkbox {
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: middle;
+    accent-color: var(--vscode-textLink-foreground, #3794ff);
+}
+
+/* Blockquotes */
+.content .md-blockquote {
+    border-left: 4px solid var(--vscode-textLink-foreground, #3794ff);
+    background: rgba(55, 148, 255, 0.08);
+    margin: 1em 0;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    color: var(--vscode-editor-foreground);
+    opacity: 0.9;
+}
+
+/* Horizontal Rule */
+.content .md-hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+    margin: 1.5em 0;
+}
+
+/* Tables */
+.content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.content th,
+.content td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.content th {
+    background: var(--vscode-editor-inactiveSelectionBackground);
+    font-weight: 600;
+    color: var(--vscode-editor-foreground);
+}
+
+.content tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Selection */
+.content ::selection {
+    background: var(--vscode-editor-selectionBackground);
+    color: var(--vscode-editor-foreground);
+}
+
+/* Scrollbar Styling */
+.content ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.content ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.content ::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-background);
+    border-radius: 4px;
+}
+
+.content ::-webkit-scrollbar-thumb:hover {
+    background: var(--vscode-scrollbarSlider-hoverBackground);
+}

@@ -1,5 +1,6 @@
 const { GoogleGenAI, Type } = require("@google/genai");
 const OpenAI = require("openai");
+const path = require("path");
 
 /**
  * Multi-Provider AI Agent supporting Gemini, OpenAI, Anthropic, and Groq
@@ -46,6 +47,54 @@ class MultiProviderAgent {
       this.abortController.abort();
       this.abortController = null;
       console.log('🛑 Generation stopped by user');
+    }
+  }
+
+  /**
+   * Get user-friendly activity name for tool operations
+   */
+  _getActivityName(toolName, args) {
+    switch (toolName) {
+      case 'writeFile':
+        return `Creating ${path.basename(args.file_path || 'file')}`;
+      case 'readFile':
+        return `Reading ${path.basename(args.file_path || 'file')}`;
+      case 'deleteFile':
+        return `Deleting ${path.basename(args.file_path || 'file')}`;
+      case 'deleteDirectory':
+        return `Deleting folder ${path.basename(args.directory_path || 'folder')}`;
+      case 'createDirectory':
+        return `Creating folder ${path.basename(args.directory_path || 'folder')}`;
+      case 'listDirectory':
+        return `Scanning ${path.basename(args.directory || 'directory')}`;
+      case 'runTerminalCommand':
+        const cmd = args.command || '';
+        if (cmd.startsWith('npm ')) return `Running npm ${cmd.split(' ')[1] || 'command'}`;
+        if (cmd.startsWith('node ')) return `Executing ${path.basename(cmd.split(' ')[1] || 'script')}`;
+        if (cmd.startsWith('git ')) return `Git ${cmd.split(' ')[1] || 'command'}`;
+        return `Running command`;
+      default:
+        return toolName;
+    }
+  }
+
+  /**
+   * Get additional details for activity
+   */
+  _getActivityDetails(toolName, args) {
+    switch (toolName) {
+      case 'writeFile':
+      case 'readFile':
+      case 'deleteFile':
+        return args.file_path || '';
+      case 'createDirectory':
+      case 'listDirectory':
+      case 'deleteDirectory':
+        return args.directory_path || args.directory || '';
+      case 'runTerminalCommand':
+        return args.command || '';
+      default:
+        return '';
     }
   }
 
@@ -402,7 +451,7 @@ Now help the user with their code.`,
   /**
    * Run agent with a single user message and send response back via callback
    */
-  async runWithMessage(directoryPath, userMessage, interactionCallback, messageCallback, toolFunctions, tools) {
+  async runWithMessage(directoryPath, userMessage, interactionCallback, messageCallback, activityCallback, toolFunctions, tools) {
     const normalizedProvider = this.provider.toLowerCase();
 
     if (!normalizedProvider.includes('gemini') && !normalizedProvider.includes('google') &&
@@ -412,6 +461,13 @@ Now help the user with their code.`,
 
     console.log(`Processing message with ${this.provider}...`);
     console.log(`User: ${userMessage}`);
+
+    // Activity helper function
+    const emitActivity = (type, name, status, details = '') => {
+      if (activityCallback) {
+        activityCallback({ type, name, status, details, timestamp: Date.now() });
+      }
+    };
 
     // Initialize history if not exists
     if (!this.history) {
@@ -543,8 +599,18 @@ IMPORTANT:
 
             console.log(`🔧 Tool: ${name}`);
             
+            // Emit activity based on tool type
+            const activityName = this._getActivityName(name, args);
+            emitActivity(name, activityName, 'running', this._getActivityDetails(name, args));
+            
             try {
               const toolResponse = await toolFunctions[name](args);
+              
+              // Emit success activity
+              const isSuccess = toolResponse.success !== false && !toolResponse.error;
+              emitActivity(name, activityName, isSuccess ? 'success' : 'error', 
+                isSuccess ? '' : (toolResponse.error || 'Operation failed'));
+              
               functionResponses.push({
                 functionResponse: { 
                   name, 
@@ -553,6 +619,7 @@ IMPORTANT:
               });
             } catch (toolError) {
               console.error(`🔴 Tool error for ${name}:`, toolError.message);
+              emitActivity(name, activityName, 'error', toolError.message);
               functionResponses.push({
                 functionResponse: { 
                   name, 

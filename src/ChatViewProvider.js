@@ -157,13 +157,18 @@ class ChatViewProvider {
         this._view.webview.postMessage({ type: 'aiResponse', text: message });
       };
 
+      // Activity callback for real-time progress updates (premium feature)
+      const activityCallback = (activity) => {
+        this._view.webview.postMessage({ type: 'activityUpdate', activity });
+      };
+
       // Interaction Callback for the Agent
       const interactionCallback = async (question) => {
         return await this._askUserInWebview(question);
       };
 
       // Run the agent with the user's message
-      await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, this._toolFunctions, this._tools);
+      await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, activityCallback, this._toolFunctions, this._tools);
 
     } catch (error) {
       // Provide user-friendly error messages
@@ -247,7 +252,7 @@ class ChatViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}' 'unsafe-inline'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com;">
   <link
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     rel="stylesheet"
@@ -889,6 +894,404 @@ class ChatViewProvider {
   opacity: 1;
 }
 
+/* ==========================================
+   Professional Markdown Formatting Styles
+   ========================================== */
+
+/* Base Content Styling for AI messages */
+.message.ai .content {
+    white-space: normal !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Paragraphs */
+.content .md-paragraph {
+    margin: 0.6em 0;
+    line-height: 1.7;
+}
+
+.content .md-paragraph:first-child {
+    margin-top: 0;
+}
+
+.content .md-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+/* Headers */
+.content .md-header {
+    font-weight: 600;
+    color: #e6edf3;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+}
+
+.content h1.md-header {
+    font-size: 1.5em;
+    border-bottom: 2px solid #58a6ff;
+    padding-bottom: 0.3em;
+    margin-top: 0.5em;
+}
+
+.content h2.md-header {
+    font-size: 1.3em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.2em;
+}
+
+.content h3.md-header {
+    font-size: 1.15em;
+}
+
+.content h4.md-header {
+    font-size: 1.05em;
+}
+
+/* Code Block Wrapper */
+.content .code-block-wrapper {
+    position: relative;
+    margin: 1em 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0d1117;
+    border: 1px solid var(--border);
+}
+
+.content .code-lang {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #30363d;
+    color: #8b949e;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    border-bottom-right-radius: 6px;
+}
+
+.content .copy-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    border-radius: 4px;
+    width: auto;
+    height: auto;
+}
+
+.content .copy-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.content .md-code-block {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 36px 16px 16px 16px;
+    margin: 0;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+}
+
+.content .md-code-block code {
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+    padding: 0;
+    border: none;
+}
+
+/* Inline Code */
+.content .md-inline-code {
+    background: #30363d;
+    color: #f78c6c;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+
+/* Syntax Highlighting */
+.content .hl-keyword { color: #ff7b72; font-weight: 500; }
+.content .hl-string { color: #a5d6ff; }
+.content .hl-number { color: #79c0ff; }
+.content .hl-comment { color: #8b949e; font-style: italic; }
+.content .hl-function { color: #d2a8ff; }
+
+/* Bold & Italic */
+.content .md-bold {
+    font-weight: 700;
+    color: #e6edf3;
+}
+
+.content .md-italic {
+    font-style: italic;
+}
+
+.content .md-strikethrough {
+    text-decoration: line-through;
+    opacity: 0.65;
+}
+
+/* Status Indicators */
+.content .status-error {
+    display: block;
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #f85149;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-warning {
+    display: block;
+    background: rgba(210, 153, 34, 0.15);
+    color: #d29922;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #d29922;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-success {
+    display: block;
+    background: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #3fb950;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-info {
+    display: block;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #58a6ff;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-tip {
+    display: block;
+    background: rgba(163, 113, 247, 0.15);
+    color: #a371f7;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border-left: 4px solid #a371f7;
+    margin: 0.5em 0;
+    font-weight: 500;
+}
+
+.content .status-icon {
+    margin-right: 6px;
+}
+
+/* Links */
+.content .md-link {
+    color: #58a6ff;
+    text-decoration: none;
+    border-bottom: 1px dashed currentColor;
+    transition: all 0.2s ease;
+}
+
+.content .md-link:hover {
+    border-bottom-style: solid;
+    opacity: 0.85;
+}
+
+/* Lists */
+.content .md-unordered-list,
+.content .md-ordered-list {
+    margin: 0.8em 0;
+    padding-left: 1.8em;
+    line-height: 1.7;
+}
+
+.content .md-unordered-list {
+    list-style-type: disc;
+}
+
+.content .md-ordered-list {
+    list-style-type: decimal;
+}
+
+.content .md-list-item {
+    margin: 0.4em 0;
+    padding-left: 0.3em;
+}
+
+/* Blockquotes */
+.content .md-blockquote {
+    border-left: 4px solid #58a6ff;
+    background: rgba(88, 166, 255, 0.08);
+    margin: 1em 0;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    color: #e6edf3;
+    opacity: 0.9;
+}
+
+/* Horizontal Rule */
+.content .md-hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 1.5em 0;
+}
+
+/* Tables */
+.content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.content th,
+.content td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.content th {
+    background: var(--sidebar-bg);
+    font-weight: 600;
+}
+
+/* ==========================================
+   Activity Feed (Premium Feature)
+   ========================================== */
+
+.activity-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 12px;
+    background: rgba(22, 27, 34, 0.8);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(48, 54, 61, 0.5);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.activity-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.activity-icon.file { background: #238636; color: white; }
+.activity-icon.folder { background: #1f6feb; color: white; }
+.activity-icon.terminal { background: #8b949e; color: white; }
+.activity-icon.read { background: #6e7681; color: white; }
+.activity-icon.delete { background: #da3633; color: white; }
+.activity-icon.scan { background: #a371f7; color: white; }
+
+.activity-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.activity-name {
+    font-weight: 500;
+    color: #e6edf3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activity-details {
+    font-size: 0.75rem;
+    color: #8b949e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activity-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.activity-status.running {
+    animation: pulse 1s infinite;
+}
+
+.activity-status.success { color: #3fb950; }
+.activity-status.error { color: #f85149; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.activity-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #30363d;
+    border-top-color: #58a6ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
   </style>
 </head>
 <body>
@@ -1037,6 +1440,175 @@ class ChatViewProvider {
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
+
+    // ==========================================
+    // Professional Markdown Parser
+    // ==========================================
+    function formatText(text) {
+      if (!text) return '';
+      
+      const codeBlocks = [];
+      const inlineCodes = [];
+      
+      // Extract code blocks first
+      let formatted = text.replace(/\`\`\`(\\w*)\\n?([\\s\\S]*?)\`\`\`/g, (match, lang, code) => {
+        const index = codeBlocks.length;
+        codeBlocks.push({ lang: lang || 'plaintext', code: code.trim() });
+        return '%%CODEBLOCK_' + index + '%%';
+      });
+      
+      // Extract inline code
+      formatted = formatted.replace(/\`([^\`\\n]+)\`/g, (match, code) => {
+        const index = inlineCodes.length;
+        inlineCodes.push(code);
+        return '%%INLINECODE_' + index + '%%';
+      });
+      
+      // Escape HTML
+      formatted = formatted
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      // Headers
+      formatted = formatted.replace(/^######\\s+(.+)$/gm, '<h6 class="md-header">$1</h6>');
+      formatted = formatted.replace(/^#####\\s+(.+)$/gm, '<h5 class="md-header">$1</h5>');
+      formatted = formatted.replace(/^####\\s+(.+)$/gm, '<h4 class="md-header">$1</h4>');
+      formatted = formatted.replace(/^###\\s+(.+)$/gm, '<h3 class="md-header">$1</h3>');
+      formatted = formatted.replace(/^##\\s+(.+)$/gm, '<h2 class="md-header">$1</h2>');
+      formatted = formatted.replace(/^#\\s+(.+)$/gm, '<h1 class="md-header">$1</h1>');
+      
+      // Horizontal rules
+      formatted = formatted.replace(/^[-*_]{3,}$/gm, '<hr class="md-hr">');
+      
+      // Blockquotes
+      formatted = formatted.replace(/^&gt;\\s+(.+)$/gm, '<blockquote class="md-blockquote">$1</blockquote>');
+      
+      // Bold
+      formatted = formatted.replace(/\\*\\*([^*]+)\\*\\*/g, '<strong class="md-bold">$1</strong>');
+      formatted = formatted.replace(/__([^_]+)__/g, '<strong class="md-bold">$1</strong>');
+      
+      // Italic
+      formatted = formatted.replace(/\\*([^*\\n]+)\\*/g, '<em class="md-italic">$1</em>');
+      
+      // Strikethrough
+      formatted = formatted.replace(/~~([^~]+)~~/g, '<del class="md-strikethrough">$1</del>');
+      
+      // Links
+      formatted = formatted.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" class="md-link" target="_blank">$1</a>');
+      
+      // Status indicators
+      formatted = formatted.replace(/\\b(Error|ERROR|error)(:?\\s*)([^\\n]*)/g, '<span class="status-error"><span class="status-icon">✖</span><strong>$1</strong>$2$3</span>');
+      formatted = formatted.replace(/\\b(Warning|WARNING|warning)(:?\\s*)([^\\n]*)/g, '<span class="status-warning"><span class="status-icon">⚠</span><strong>$1</strong>$2$3</span>');
+      formatted = formatted.replace(/\\b(Success|SUCCESS|success)(:?\\s*)([^\\n]*)/g, '<span class="status-success"><span class="status-icon">✔</span><strong>$1</strong>$2$3</span>');
+      formatted = formatted.replace(/\\b(Note|NOTE|note|Info|INFO|info)(:?\\s*)([^\\n]*)/g, '<span class="status-info"><span class="status-icon">ℹ</span><strong>$1</strong>$2$3</span>');
+      formatted = formatted.replace(/\\b(Tip|TIP|tip)(:?\\s*)([^\\n]*)/g, '<span class="status-tip"><span class="status-icon">💡</span><strong>$1</strong>$2$3</span>');
+      
+      // Unordered lists
+      formatted = formatted.replace(/^[\\t ]*[-*•]\\s+(.+)$/gm, '<li class="md-list-item">$1</li>');
+      
+      // Ordered lists
+      formatted = formatted.replace(/^[\\t ]*(\\d+)\\.\\s+(.+)$/gm, '<li class="md-list-item" value="$1">$2</li>');
+      
+      // Wrap lists
+      formatted = formatted.replace(/(<li class="md-list-item"[^>]*>[\\s\\S]*?<\\/li>\\n?)+/g, (match) => {
+        if (match.includes('value="')) {
+          return '<ol class="md-ordered-list">' + match + '</ol>';
+        }
+        return '<ul class="md-unordered-list">' + match + '</ul>';
+      });
+      
+      // Restore code blocks with highlighting
+      codeBlocks.forEach((block, index) => {
+        const langLabel = block.lang !== 'plaintext' ? '<span class="code-lang">' + block.lang + '</span>' : '';
+        const copyBtn = '<button class="copy-btn" onclick="copyCode(this)" title="Copy code">📋</button>';
+        let code = block.code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        code = highlightSyntax(code, block.lang);
+        formatted = formatted.replace(
+          '%%CODEBLOCK_' + index + '%%',
+          '<div class="code-block-wrapper">' + langLabel + copyBtn + '<pre class="md-code-block"><code>' + code + '</code></pre></div>'
+        );
+      });
+      
+      // Restore inline code
+      inlineCodes.forEach((code, index) => {
+        const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        formatted = formatted.replace('%%INLINECODE_' + index + '%%', '<code class="md-inline-code">' + escaped + '</code>');
+      });
+      
+      // Convert line breaks
+      const lines = formatted.split('\\n');
+      let result = '';
+      let inParagraph = false;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        const isBlock = /^<(h[1-6]|ul|ol|li|pre|div|blockquote|hr)/.test(line) || /<\\/(h[1-6]|ul|ol|li|pre|div|blockquote)>$/.test(line);
+        
+        if (line === '') {
+          if (inParagraph) { result += '</p>\\n'; inParagraph = false; }
+        } else if (isBlock) {
+          if (inParagraph) { result += '</p>\\n'; inParagraph = false; }
+          result += line + '\\n';
+        } else {
+          if (!inParagraph) { result += '<p class="md-paragraph">'; inParagraph = true; }
+          else { result += '<br>'; }
+          result += line;
+        }
+      }
+      if (inParagraph) result += '</p>';
+      
+      return result;
+    }
+    
+    function highlightSyntax(code, lang) {
+      const keywords = {
+        javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'break', 'continue', 'new', 'this', 'class', 'extends', 'import', 'export', 'from', 'default', 'async', 'await', 'try', 'catch', 'finally', 'throw', 'typeof', 'true', 'false', 'null', 'undefined'],
+        python: ['def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'break', 'continue', 'import', 'from', 'as', 'try', 'except', 'finally', 'raise', 'with', 'lambda', 'True', 'False', 'None', 'and', 'or', 'not', 'in', 'is', 'pass', 'self'],
+        java: ['public', 'private', 'protected', 'class', 'interface', 'extends', 'implements', 'return', 'if', 'else', 'for', 'while', 'switch', 'case', 'break', 'new', 'this', 'static', 'final', 'void', 'int', 'boolean', 'String', 'try', 'catch', 'throw', 'import', 'package', 'true', 'false', 'null'],
+        typescript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'interface', 'type', 'import', 'export', 'async', 'await', 'try', 'catch', 'throw', 'typeof', 'true', 'false', 'null', 'undefined', 'public', 'private', 'protected', 'readonly']
+      };
+      
+      const langKw = keywords[lang] || keywords['javascript'] || [];
+      
+      // Strings
+      code = code.replace(/(".*?"|'.*?')/g, '<span class="hl-string">$1</span>');
+      
+      // Comments
+      code = code.replace(/(\\/\\/[^\\n]*)/g, '<span class="hl-comment">$1</span>');
+      code = code.replace(/(\\/\\*[\\s\\S]*?\\*\\/)/g, '<span class="hl-comment">$1</span>');
+      code = code.replace(/(#[^\\n]*)/g, '<span class="hl-comment">$1</span>');
+      
+      // Numbers
+      code = code.replace(/\\b(\\d+\\.?\\d*)\\b/g, '<span class="hl-number">$1</span>');
+      
+      // Keywords
+      langKw.forEach(kw => {
+        const regex = new RegExp('\\\\b(' + kw + ')\\\\b', 'g');
+        code = code.replace(regex, '<span class="hl-keyword">$1</span>');
+      });
+      
+      // Functions
+      code = code.replace(/\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(/g, '<span class="hl-function">$1</span>(');
+      
+      return code;
+    }
+    
+    // Copy code function
+    window.copyCode = function(btn) {
+      const codeBlock = btn.nextElementSibling.querySelector('code');
+      const text = codeBlock.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '📋'; }, 2000);
+      }).catch(() => {
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '📋'; }, 2000);
+      });
+    };
 
     // Elements
     const screens = {
@@ -1365,12 +1937,25 @@ class ChatViewProvider {
     function addMessageUI(text, sender) {
       const div = document.createElement('div');
       div.className = \`message \${sender}\`;
+      
+      // Use formatted HTML for AI messages, plain text for user
+      const formattedText = sender === 'ai' ? formatText(text) : escapeHtml(text);
+      
       div.innerHTML = \`
         <div class="avatar">\${sender === 'ai' ? '🤖' : '👤'}</div>
-        <div class="content">\${text}</div>
+        <div class="content">\${formattedText}</div>
       \`;
       messagesContainer.appendChild(div);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
 
     function addMessage(text, sender) {
@@ -1447,10 +2032,16 @@ class ChatViewProvider {
         case 'switchToChat':
           showScreen('chat');
           break;
+        case 'activityUpdate':
+          handleActivityUpdate(message.activity);
+          break;
         case 'aiResponse':
-          // Remove typing indicators only when AI responds
+          // Remove typing indicators and activity container when AI responds
           const aiIndicators = document.querySelectorAll('.message.ai .content.typing');
           aiIndicators.forEach(el => el.closest('.message').remove());
+          
+          // Clear activity container
+          clearActivityContainer();
           
           // Reset buttons
           isAIProcessing = false;
@@ -1463,6 +2054,9 @@ class ChatViewProvider {
           // System messages are displayed but NOT saved to conversation history
           const sysIndicators = document.querySelectorAll('.message.ai .content.typing');
           sysIndicators.forEach(el => el.closest('.message').remove());
+          
+          // Clear activity container
+          clearActivityContainer();
           
           // Reset buttons
           isAIProcessing = false;
@@ -1489,6 +2083,103 @@ class ChatViewProvider {
             break;
       }
     });
+    
+    // ==========================================
+    // Activity Feed Functions (Premium Feature)
+    // ==========================================
+    
+    let activityContainer = null;
+    const activityItems = new Map();
+    
+    function getActivityIcon(toolType) {
+      const icons = {
+        'writeFile': { icon: '📄', class: 'file' },
+        'readFile': { icon: '👁️', class: 'read' },
+        'deleteFile': { icon: '🗑️', class: 'delete' },
+        'deleteDirectory': { icon: '🗑️', class: 'delete' },
+        'createDirectory': { icon: '📁', class: 'folder' },
+        'listDirectory': { icon: '🔍', class: 'scan' },
+        'runTerminalCommand': { icon: '⌨️', class: 'terminal' }
+      };
+      return icons[toolType] || { icon: '⚙️', class: 'file' };
+    }
+    
+    function getStatusIcon(status) {
+      if (status === 'running') {
+        return '<div class="activity-spinner"></div>';
+      } else if (status === 'success') {
+        return '✓';
+      } else if (status === 'error') {
+        return '✗';
+      }
+      return '';
+    }
+    
+    function handleActivityUpdate(activity) {
+      // Create activity container if doesn't exist
+      if (!activityContainer || !document.contains(activityContainer)) {
+        // Remove typing indicator first
+        const typingIndicators = document.querySelectorAll('.message.ai .content.typing');
+        typingIndicators.forEach(el => el.closest('.message').remove());
+        
+        // Create new activity message
+        const activityMessage = document.createElement('div');
+        activityMessage.className = 'message ai';
+        activityMessage.innerHTML = \`
+          <div class="avatar">🤖</div>
+          <div class="content">
+            <div class="activity-container" id="activity-feed"></div>
+          </div>
+        \`;
+        messagesContainer.appendChild(activityMessage);
+        activityContainer = activityMessage.querySelector('#activity-feed');
+      }
+      
+      const activityId = activity.type + '-' + (activity.details || activity.name);
+      const iconInfo = getActivityIcon(activity.type);
+      
+      // Check if activity item already exists
+      let existingItem = activityItems.get(activityId);
+      
+      if (existingItem) {
+        // Update existing item status
+        const statusEl = existingItem.querySelector('.activity-status');
+        statusEl.innerHTML = getStatusIcon(activity.status);
+        statusEl.className = 'activity-status ' + activity.status;
+      } else {
+        // Create new activity item
+        const item = document.createElement('div');
+        item.className = 'activity-item';
+        item.innerHTML = \`
+          <div class="activity-icon \${iconInfo.class}">\${iconInfo.icon}</div>
+          <div class="activity-content">
+            <div class="activity-name">\${activity.name}</div>
+            \${activity.details ? '<div class="activity-details">' + truncatePath(activity.details) + '</div>' : ''}
+          </div>
+          <div class="activity-status \${activity.status}">\${getStatusIcon(activity.status)}</div>
+        \`;
+        
+        activityContainer.appendChild(item);
+        activityItems.set(activityId, item);
+      }
+      
+      // Scroll to bottom
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    function truncatePath(path) {
+      if (!path) return '';
+      const parts = path.replace(/\\\\/g, '/').split('/');
+      if (parts.length > 3) {
+        return '.../' + parts.slice(-3).join('/');
+      }
+      return path;
+    }
+    
+    function clearActivityContainer() {
+      activityContainer = null;
+      activityItems.clear();
+    }
 
   </script>
 </body>

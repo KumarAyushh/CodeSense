@@ -139,6 +139,35 @@ async function deleteFile({ file_path }) {
   }
 }
 
+async function deleteDirectory({ directory_path, recursive = true }) {
+  try {
+    if (fs.existsSync(directory_path)) {
+      const stat = fs.statSync(directory_path);
+      if (!stat.isDirectory()) {
+        return { success: false, error: "Path is not a directory" };
+      }
+      
+      if (recursive) {
+        // Recursively delete directory and all contents
+        fs.rmSync(directory_path, { recursive: true, force: true });
+      } else {
+        // Only delete if empty
+        const contents = fs.readdirSync(directory_path);
+        if (contents.length > 0) {
+          return { success: false, error: "Directory is not empty. Use recursive=true to delete non-empty directories." };
+        }
+        fs.rmdirSync(directory_path);
+      }
+      
+      console.log(`🗑️ Deleted Directory: ${directory_path}`);
+      return { success: true };
+    }
+    return { success: false, error: "Directory not found" };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
 async function createDirectory({ directory_path }) {
   try {
     if (!fs.existsSync(directory_path)) {
@@ -171,6 +200,7 @@ const toolFunctions = {
   readFile,
   writeFile,
   deleteFile,
+  deleteDirectory,
   createDirectory,
   runTerminalCommand,
 };
@@ -224,6 +254,18 @@ const tools = [
             file_path: { type: Type.STRING, description: "Path of the file to delete" },
           },
           required: ["file_path"],
+        },
+      },
+      {
+        name: "deleteDirectory",
+        description: "Deletes a directory/folder. Can recursively delete all contents.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            directory_path: { type: Type.STRING, description: "Path of the directory to delete" },
+            recursive: { type: Type.BOOLEAN, description: "If true, deletes all contents recursively. Default is true." },
+          },
+          required: ["directory_path"],
         },
       },
       {
