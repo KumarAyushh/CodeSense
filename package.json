@@ -34,6 +34,16 @@
   ],
   "main": "./src/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "lec7.addApiKey",
+        "title": "CodeSense: Add API Key"
+      },
+      {
+        "command": "lec7.resetApiKey",
+        "title": "CodeSense: Reset API Key"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {

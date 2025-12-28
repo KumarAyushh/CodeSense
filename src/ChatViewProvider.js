@@ -52,6 +52,30 @@ class ChatViewProvider {
           await this._context.secrets.delete('ai_api_key');
           this._view.webview.postMessage({ type: 'apiKeyCleared' });
           break;
+        case 'resetApiKey':
+          // Reset API Key - delete all stored keys
+          const keysToDelete = [
+            'ai_api_key',
+            'ai_provider',
+            'gemini_api_key',
+            'google_gemini_api_key',
+            'openai_api_key',
+            'anthropic_api_key',
+            'groq_api_key'
+          ];
+          for (const k of keysToDelete) {
+            try {
+              await this._context.secrets.delete(k);
+            } catch (e) {
+              // Ignore individual delete errors
+            }
+          }
+          // Reset agent
+          this._agent = null;
+          // Show success message and request new API key
+          this._view.webview.postMessage({ type: 'systemMessage', text: '✅ API key reset successfully. Please enter your API key to continue.' });
+          this._view.webview.postMessage({ type: 'requestApiKey' });
+          break;
         case 'stopGeneration':
           // Stop ongoing AI generation
           if (this._agent) {
@@ -590,6 +614,186 @@ class ChatViewProvider {
     .history-item:hover .delete-history-btn { opacity: 1; }
     .delete-history-btn:hover { color: var(--danger); }
 
+    /* ================= SETTINGS DROPDOWN ================= */
+    .settings-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .settings-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--sidebar-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      min-width: 180px;
+      z-index: 1000;
+      display: none;
+      overflow: hidden;
+    }
+
+    .settings-menu.show {
+      display: block;
+      animation: fadeInDown 0.2s ease;
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .settings-menu-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background 0.2s;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-menu-item:last-child {
+      border-bottom: none;
+    }
+
+    .settings-menu-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .settings-menu-item.danger {
+      color: var(--danger);
+    }
+
+    .settings-menu-item.danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* ================= CONFIRMATION MODAL ================= */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: var(--sidebar-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 320px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      color: var(--danger);
+      font-size: 1.5rem;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .modal-message {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .modal-btn-cancel:hover {
+      border-color: var(--text-secondary);
+      color: var(--text-primary);
+    }
+
+    .modal-btn-confirm {
+      background: var(--danger);
+      border: none;
+      color: white;
+    }
+
+    .modal-btn-confirm:hover {
+      background: var(--danger-hover);
+    }
+
+    .settings-menu-item i {
+      width: 16px;
+      font-size: 0.9rem;
+    }
+
     /* ================= LOGO ================= */
 
 .code-logo {
@@ -776,7 +980,19 @@ class ChatViewProvider {
         <span style="font-weight: 700; font-size: 1.1rem; background: linear-gradient(135deg, #58a6ff, #3a7cff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1;">CodeSense</span>
       </div>
       <button id="reset-btn" class="icon-btn" title="Reset Conversation"><i class="fa-solid fa-rotate-right"></i></button>
-      <button id="settings-btn" class="icon-btn" title="Change API Key"><i class="fa-solid fa-gear"></i></button>
+      <div class="settings-dropdown">
+        <button id="settings-btn" class="icon-btn" title="Settings"><i class="fa-solid fa-gear"></i></button>
+        <div id="settings-menu" class="settings-menu">
+          <div class="settings-menu-item" id="change-api-key-btn">
+            <i class="fa-solid fa-key"></i>
+            <span>Change API Key</span>
+          </div>
+          <div class="settings-menu-item danger" id="reset-api-key-btn">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Reset API Key</span>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div id="messages-container" class="chat-messages">
@@ -799,6 +1015,23 @@ class ChatViewProvider {
           <rect x="6" y="6" width="12" height="12" rx="2"></rect>
         </svg>
       </button>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION MODAL -->
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-icon">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div class="modal-title">Reset API Key?</div>
+      <div class="modal-message">
+        This will permanently delete your stored API key. You'll need to re-enter it to continue using CodeSense AI.
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" id="modal-cancel-btn">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" id="modal-confirm-btn">Reset</button>
+      </div>
     </div>
   </div>
 
@@ -871,16 +1104,86 @@ class ChatViewProvider {
       showScreen(previousScreen);
     });
 
-    // Settings button - reconfigure API key
+    // Settings dropdown menu
     const settingsBtn = document.getElementById('settings-btn');
-    if (settingsBtn) {
-      settingsBtn.addEventListener('click', () => {
+    const settingsMenu = document.getElementById('settings-menu');
+    const changeApiKeyBtn = document.getElementById('change-api-key-btn');
+    const resetApiKeyBtn = document.getElementById('reset-api-key-btn');
+
+    // Toggle settings menu
+    if (settingsBtn && settingsMenu) {
+      settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsMenu.classList.toggle('show');
+      });
+
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+          settingsMenu.classList.remove('show');
+        }
+      });
+    }
+
+    // Change API Key option
+    if (changeApiKeyBtn) {
+      changeApiKeyBtn.addEventListener('click', () => {
+        settingsMenu.classList.remove('show');
         previousScreen = 'chat';
-        // Clear current inputs
         inputs.apiKey.value = '';
         inputs.apiKey.style.borderColor = '';
-        // Show config screen
         showScreen('config');
+      });
+    }
+
+    // Confirmation Modal elements
+    const confirmModal = document.getElementById('confirm-modal');
+    const modalCancelBtn = document.getElementById('modal-cancel-btn');
+    const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+    function showConfirmModal() {
+      confirmModal.classList.add('show');
+    }
+
+    function hideConfirmModal() {
+      confirmModal.classList.remove('show');
+    }
+
+    // Modal cancel button
+    if (modalCancelBtn) {
+      modalCancelBtn.addEventListener('click', () => {
+        hideConfirmModal();
+      });
+    }
+
+    // Modal confirm button - actually reset the API key
+    if (modalConfirmBtn) {
+      modalConfirmBtn.addEventListener('click', () => {
+        hideConfirmModal();
+        // Set previous screen to welcome so user can't go back to chat without key
+        previousScreen = 'welcome';
+        // Clear API key input
+        inputs.apiKey.value = '';
+        inputs.apiKey.style.borderColor = '';
+        // Send reset message to extension
+        vscode.postMessage({ type: 'resetApiKey' });
+      });
+    }
+
+    // Close modal when clicking overlay
+    if (confirmModal) {
+      confirmModal.addEventListener('click', (e) => {
+        if (e.target === confirmModal) {
+          hideConfirmModal();
+        }
+      });
+    }
+
+    // Reset API Key option - show custom modal
+    if (resetApiKeyBtn) {
+      resetApiKeyBtn.addEventListener('click', () => {
+        settingsMenu.classList.remove('show');
+        showConfirmModal();
       });
     }
 
@@ -1158,6 +1461,12 @@ class ChatViewProvider {
           addMessageUI(message.text, 'ai');
           break;
         case 'requestApiKey':
+          // Set previous screen to welcome so cancel button goes to welcome, not chat
+          previousScreen = 'welcome';
+          // Clear the input field
+          inputs.apiKey.value = '';
+          inputs.apiKey.style.borderColor = '';
+          // Show config screen
           showScreen('config');
           break;
         case 'historyList':

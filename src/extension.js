@@ -61,6 +61,46 @@ async function activate(context) {
             vscode.window.showInformationMessage(`${provider} API key saved securely.`);
         })
     );
+
+    // 🔹 Reset API Key Command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('lec7.resetApiKey', async () => {
+            const confirmation = await vscode.window.showWarningMessage(
+                'Are you sure you want to reset your API key? You will need to re-enter it to use CodeSense AI.',
+                { modal: true },
+                'Yes, Reset',
+                'Cancel'
+            );
+
+            if (confirmation === 'Yes, Reset') {
+                // Delete all known API keys from secret storage
+                const keysToDelete = [
+                    'ai_api_key',
+                    'ai_provider',
+                    'gemini_api_key',
+                    'google_gemini_api_key',
+                    'openai_api_key',
+                    'anthropic_api_key',
+                    'groq_api_key'
+                ];
+
+                for (const k of keysToDelete) {
+                    try {
+                        await context.secrets.delete(k);
+                    } catch (e) {
+                        // Ignore individual delete errors
+                    }
+                }
+
+                vscode.window.showInformationMessage('✅ API key reset successfully. Please re-enter your key when prompted.');
+                
+                // Notify the webview to show the config screen
+                if (provider && provider._view) {
+                    provider._view.webview.postMessage({ type: 'requestApiKey' });
+                }
+            }
+        })
+    );
 }
 
 function deactivate() {}
