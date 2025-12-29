@@ -411,20 +411,23 @@ class ChatViewProvider {
       flex: 1;
       padding: 16px;
       overflow-y: auto;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .message {
       display: flex;
       gap: 10px;
-      max-width: 85%;
       margin-bottom: 4px;
+      box-sizing: border-box;
     }
 
-    .message.user { align-self: flex-end; flex-direction: row-reverse; }
-    .message.ai { align-self: flex-start; }
+    .message.user { align-self: flex-end; flex-direction: row-reverse; max-width: 85%; }
+    .message.ai { align-self: flex-start; max-width: 100%; width: 100%; }
 
     .avatar {
       width: 28px;
@@ -446,8 +449,16 @@ class ChatViewProvider {
       font-size: 0.9rem;
       line-height: 1.5;
       border: 1px solid var(--border);
-      word-wrap: break-word; /* Ensure long text wraps */
+      word-wrap: break-word;
       overflow-wrap: break-word;
+      word-break: break-word;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .message.ai .content {
+      flex: 1;
+      max-width: calc(100% - 38px); /* 28px avatar + 10px gap */
     }
     
     .message.user .content {
@@ -517,6 +528,10 @@ class ChatViewProvider {
     .dot:nth-child(1) { animation-delay: -0.32s; }
     .dot:nth-child(2) { animation-delay: -0.16s; }
     @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* Typing indicator message should be small, not full width */
+    .message.ai:has(.content.typing) { max-width: 85%; width: auto; }
+    .message.ai .content.typing { flex: none; }
 
     /* ================= SIDEBAR & HISTORY ================= */
     #history-sidebar {
@@ -957,6 +972,8 @@ class ChatViewProvider {
     overflow: hidden;
     background: #0d1117;
     border: 1px solid var(--border);
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .content .code-lang {
@@ -1023,7 +1040,8 @@ class ChatViewProvider {
     border-radius: 4px;
     font-family: 'Fira Code', 'Consolas', monospace;
     font-size: 0.85em;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 
 /* Syntax Highlighting */
