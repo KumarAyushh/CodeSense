@@ -117,9 +117,19 @@ class MultiProviderAgent {
         continue;
       }
 
+      // Function responses only make sense right after the call they answer
+      // (trimming can cut the call off)
+      if (msg.role === 'user' && msg.parts.some(p => p.functionResponse)) {
+        const prevMsg = sanitized[sanitized.length - 1];
+        if (!prevMsg || !prevMsg.parts.some(p => p.functionCall)) {
+          console.warn(`⚠️ Skipping orphaned function response at index ${i}`);
+          continue;
+        }
+      }
+
       // Check if this is a function call from model
       const hasFunctionCall = msg.role === 'model' && msg.parts.some(p => p.functionCall);
-      
+
       if (hasFunctionCall) {
         // Look ahead to check if there's a corresponding function response
         const nextMsg = history[i + 1];
@@ -211,26 +221,39 @@ class MultiProviderAgent {
 
     for (const content of contents) {
       if (content.role === 'user') {
-        const text = content.parts.map(p => p.text || JSON.stringify(p)).join('\n');
-        messages.push({ role: 'user', content: text });
+        // Tool results must come first: they answer the assistant turn right before this one
+        for (const part of content.parts) {
+          if (part.functionResponse) {
+            messages.push({
+              role: 'tool',
+              tool_call_id: part.functionResponse.id,
+              content: JSON.stringify(part.functionResponse.response)
+            });
+          }
+        }
+
+        const text = content.parts.filter(p => p.text).map(p => p.text).join('\n');
+        if (text) {
+          messages.push({ role: 'user', content: text });
+        }
       } else if (content.role === 'model') {
-        // Check if this is a function call
-        if (content.parts[0]?.functionCall) {
-          const fc = content.parts[0].functionCall;
+        const text = content.parts.filter(p => p.text).map(p => p.text).join('\n');
+        const functionCalls = content.parts.filter(p => p.functionCall).map(p => p.functionCall);
+
+        if (functionCalls.length > 0) {
           messages.push({
             role: 'assistant',
-            content: null,
-            tool_calls: [{
-              id: 'call_' + Date.now(),
+            content: text || null,
+            tool_calls: functionCalls.map(fc => ({
+              id: fc.id,
               type: 'function',
               function: {
                 name: fc.name,
-                arguments: JSON.stringify(fc.args)
+                arguments: JSON.stringify(fc.args || {})
               }
-            }]
+            }))
           });
         } else {
-          const text = content.parts.map(p => p.text || '').join('\n');
           messages.push({ role: 'assistant', content: text });
         }
       }
@@ -297,10 +320,15 @@ class MultiProviderAgent {
 
     // Check if there are tool calls
     if (message.tool_calls && message.tool_calls.length > 0) {
-      const functionCalls = message.tool_calls.map(tc => ({
-        name: tc.function.name,
-        args: JSON.parse(tc.function.arguments)
-      }));
+      const functionCalls = message.tool_calls.map(tc => {
+        let args = {};
+        try {
+          args = JSON.parse(tc.function.arguments);
+        } catch (parseError) {
+          console.warn(`⚠️ Invalid JSON arguments for ${tc.function.name}: ${parseError.message}`);
+        }
+        return { id: tc.id, name: tc.function.name, args };
+      });
 
       return {
         functionCalls,
@@ -595,10 +623,10 @@ IMPORTANT:
           // Execute all function calls and collect responses
           const functionResponses = [];
           for (const functionCall of result.functionCalls) {
-            const { name, args } = functionCall;
+            const { id, name, args } = functionCall;
 
             console.log(`🔧 Tool: ${name}`);
-            
+
             // Emit activity based on tool type
             const activityName = this._getActivityName(name, args);
             emitActivity(name, activityName, 'running', this._getActivityDetails(name, args));
@@ -612,18 +640,20 @@ IMPORTANT:
                 isSuccess ? '' : (toolResponse.error || 'Operation failed'));
               
               functionResponses.push({
-                functionResponse: { 
-                  name, 
-                  response: { result: toolResponse } 
+                functionResponse: {
+                  id,
+                  name,
+                  response: { result: toolResponse }
                 }
               });
             } catch (toolError) {
               console.error(`🔴 Tool error for ${name}:`, toolError.message);
               emitActivity(name, activityName, 'error', toolError.message);
               functionResponses.push({
-                functionResponse: { 
-                  name, 
-                  response: { error: toolError.message } 
+                functionResponse: {
+                  id,
+                  name,
+                  response: { error: toolError.message }
                 }
               });
             }

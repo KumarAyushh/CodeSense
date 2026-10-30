@@ -58,7 +58,7 @@ npm run lint         # eslint
   For `exec`: set `cwd` to the workspace, `timeout: 60000`, and a `maxBuffer`; truncate very long stdout before sending to the model.
   Remove "Don't ask for permission" from both system prompts (`MultiProviderAgent.js` `run` and `runWithMessage`).
 
-- [ ] **3. Fix OpenAI tool calling.**
+- [x] **3. Fix OpenAI tool calling.**
   - `_convertFromOpenAIResponse`: keep `tc.id` on each function call; wrap `JSON.parse(tc.function.arguments)` in try/catch.
   - Store that id in history (`{ functionCall: { id, name, args } }` and `{ functionResponse: { id, name, response } }`).
   - `_convertToOpenAIMessages`: emit all function calls of a model turn (not just `parts[0]`) with their real ids; emit each `functionResponse` as `{ role: 'tool', tool_call_id: id, content: JSON.stringify(response) }` instead of user text.
