@@ -117,9 +117,19 @@ class MultiProviderAgent {
         continue;
       }
 
+      // Function responses only make sense right after the call they answer
+      // (trimming can cut the call off)
+      if (msg.role === 'user' && msg.parts.some(p => p.functionResponse)) {
+        const prevMsg = sanitized[sanitized.length - 1];
+        if (!prevMsg || !prevMsg.parts.some(p => p.functionCall)) {
+          console.warn(`⚠️ Skipping orphaned function response at index ${i}`);
+          continue;
+        }
+      }
+
       // Check if this is a function call from model
       const hasFunctionCall = msg.role === 'model' && msg.parts.some(p => p.functionCall);
-      
+
       if (hasFunctionCall) {
         // Look ahead to check if there's a corresponding function response
         const nextMsg = history[i + 1];
@@ -197,7 +207,7 @@ class MultiProviderAgent {
         ],
         tools: tools.length > 0 ? tools : undefined,
         tool_choice: tools.length > 0 ? 'auto' : undefined
-      });
+      }, { signal: config.config.abortSignal });
 
       return this._convertFromOpenAIResponse(response);
     }
@@ -211,26 +221,39 @@ class MultiProviderAgent {
 
     for (const content of contents) {
       if (content.role === 'user') {
-        const text = content.parts.map(p => p.text || JSON.stringify(p)).join('\n');
-        messages.push({ role: 'user', content: text });
+        // Tool results must come first: they answer the assistant turn right before this one
+        for (const part of content.parts) {
+          if (part.functionResponse) {
+            messages.push({
+              role: 'tool',
+              tool_call_id: part.functionResponse.id,
+              content: JSON.stringify(part.functionResponse.response)
+            });
+          }
+        }
+
+        const text = content.parts.filter(p => p.text).map(p => p.text).join('\n');
+        if (text) {
+          messages.push({ role: 'user', content: text });
+        }
       } else if (content.role === 'model') {
-        // Check if this is a function call
-        if (content.parts[0]?.functionCall) {
-          const fc = content.parts[0].functionCall;
+        const text = content.parts.filter(p => p.text).map(p => p.text).join('\n');
+        const functionCalls = content.parts.filter(p => p.functionCall).map(p => p.functionCall);
+
+        if (functionCalls.length > 0) {
           messages.push({
             role: 'assistant',
-            content: null,
-            tool_calls: [{
-              id: 'call_' + Date.now(),
+            content: text || null,
+            tool_calls: functionCalls.map(fc => ({
+              id: fc.id,
               type: 'function',
               function: {
                 name: fc.name,
-                arguments: JSON.stringify(fc.args)
+                arguments: JSON.stringify(fc.args || {})
               }
-            }]
+            }))
           });
         } else {
-          const text = content.parts.map(p => p.text || '').join('\n');
           messages.push({ role: 'assistant', content: text });
         }
       }
@@ -297,10 +320,15 @@ class MultiProviderAgent {
 
     // Check if there are tool calls
     if (message.tool_calls && message.tool_calls.length > 0) {
-      const functionCalls = message.tool_calls.map(tc => ({
-        name: tc.function.name,
-        args: JSON.parse(tc.function.arguments)
-      }));
+      const functionCalls = message.tool_calls.map(tc => {
+        let args = {};
+        try {
+          args = JSON.parse(tc.function.arguments);
+        } catch (parseError) {
+          console.warn(`⚠️ Invalid JSON arguments for ${tc.function.name}: ${parseError.message}`);
+        }
+        return { id: tc.id, name: tc.function.name, args };
+      });
 
       return {
         functionCalls,
@@ -377,7 +405,6 @@ IMPORTANT:
 - Execute file operations immediately when requested
 - Keep responses short and chat-like
 - Use emojis sparingly (🔴 for critical bugs, 🟡 for improvements)
-- Don't ask for permission - the user's request IS the permission
 - Focus on doing what the user asked
 
 Now help the user with their code.`,
@@ -499,6 +526,7 @@ Now help the user with their code.`,
 
     // Create abort controller for this request
     this.abortController = new AbortController();
+    const { signal } = this.abortController;
 
     const MAX_TURNS = 15;
     let turn = 0;
@@ -506,7 +534,7 @@ Now help the user with their code.`,
     const MAX_RETRIES = 2;
 
     try {
-      while (turn < MAX_TURNS) {
+      while (turn < MAX_TURNS && !signal.aborted) {
         turn++;
         console.log(`\n🔄 Turn ${turn}/${MAX_TURNS}`);
 
@@ -545,16 +573,20 @@ PROCESS:
 
 IMPORTANT:
 -   Execute file operations IMMEDIATELY when requested.
--   Do NOT ask for permission for creation tasks - the user's request IS the permission.
+-   Deletes and terminal commands ask the user for approval automatically. If a tool returns "User denied this action", do not retry it.
+-   You can only access files inside the working directory.
 -   Keep responses professional and concise.
 -   Use emojis sparingly (🔴 for critical bugs, 🟡 for improvements).`,
               tools,
+              abortSignal: signal,
             },
           });
         } catch (apiError) {
+          if (signal.aborted) throw apiError;
+
           // Handle specific API errors
           const errorMsg = apiError.message || String(apiError);
-          
+
           if (errorMsg.includes('function call turn') || errorMsg.includes('INVALID_ARGUMENT')) {
             console.error('🔴 Conversation state error:', errorMsg);
             
@@ -595,35 +627,45 @@ IMPORTANT:
           // Execute all function calls and collect responses
           const functionResponses = [];
           for (const functionCall of result.functionCalls) {
-            const { name, args } = functionCall;
+            const { id, name, args } = functionCall;
+
+            // Every call still needs a response, or the turn would be dropped from history
+            if (signal.aborted) {
+              functionResponses.push({
+                functionResponse: { id, name, response: { error: 'Stopped by user' } }
+              });
+              continue;
+            }
 
             console.log(`🔧 Tool: ${name}`);
-            
+
             // Emit activity based on tool type
             const activityName = this._getActivityName(name, args);
             emitActivity(name, activityName, 'running', this._getActivityDetails(name, args));
             
             try {
-              const toolResponse = await toolFunctions[name](args);
-              
+              const toolResponse = await toolFunctions[name](args, { signal });
+
               // Emit success activity
               const isSuccess = toolResponse.success !== false && !toolResponse.error;
               emitActivity(name, activityName, isSuccess ? 'success' : 'error', 
                 isSuccess ? '' : (toolResponse.error || 'Operation failed'));
               
               functionResponses.push({
-                functionResponse: { 
-                  name, 
-                  response: { result: toolResponse } 
+                functionResponse: {
+                  id,
+                  name,
+                  response: { result: toolResponse }
                 }
               });
             } catch (toolError) {
               console.error(`🔴 Tool error for ${name}:`, toolError.message);
               emitActivity(name, activityName, 'error', toolError.message);
               functionResponses.push({
-                functionResponse: { 
-                  name, 
-                  response: { error: toolError.message } 
+                functionResponse: {
+                  id,
+                  name,
+                  response: { error: toolError.message }
                 }
               });
             }
@@ -653,10 +695,9 @@ IMPORTANT:
         trimHistory();
       }
     } catch (error) {
-      // Handle abort error
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      // Handle abort error (the webview already shows that generation stopped)
+      if (signal.aborted || error.name === 'AbortError' || error.message?.includes('aborted')) {
         console.log('✅ Generation canceled successfully');
-        messageCallback('Generation stopped.');
         return;
       }
 
