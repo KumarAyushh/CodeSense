@@ -1998,6 +1998,9 @@ class ChatViewProvider {
       const text = inputs.message.value.trim();
       if (!text) return;
 
+      // Start a new activity feed (one left over from a stopped run stays on screen)
+      clearActivityContainer();
+
       addMessage(text, 'user');
       vscode.postMessage({ type: 'userMessage', text });
       inputs.message.value = '';

@@ -2,7 +2,7 @@ const { GoogleGenAI, Type } = require("@google/genai");
 const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
-const { exec } = require("child_process");
+const { exec, execFile } = require("child_process");
 const readlineSync = require("readline-sync");
 
 // Import diff utility (will be undefined in CLI mode, only works in VS Code)
@@ -82,6 +82,7 @@ function resolveInWorkspace(root, p) {
 // ============================================
 
 const USER_DENIED = "User denied this action";
+const STOPPED_BY_USER = "Stopped by user";
 const COMMAND_TIMEOUT_MS = 60000;
 const COMMAND_MAX_BUFFER = 10 * 1024 * 1024;
 const MAX_OUTPUT_CHARS = 20000;
@@ -89,6 +90,18 @@ const MAX_OUTPUT_CHARS = 20000;
 function truncateOutput(text) {
   if (text.length <= MAX_OUTPUT_CHARS) return text;
   return `${text.slice(0, MAX_OUTPUT_CHARS)}\n... [truncated ${text.length - MAX_OUTPUT_CHARS} characters]`;
+}
+
+function killProcessTree(child) {
+  if (process.platform === "win32") {
+    // child.kill() would only end the cmd.exe shell and leave npm, node etc. running
+    execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], () => {});
+  } else {
+    child.kill();
+  }
+  // Don't wait on pipes a surviving process may still hold open
+  child.stdout?.destroy();
+  child.stderr?.destroy();
 }
 
 // `confirm(message)` asks the user to approve a destructive action. Without one, those actions are denied.
@@ -248,7 +261,7 @@ function createTools(workspaceRoot, { confirm = async () => false } = {}) {
     }
   }
 
-  async function runTerminalCommand({ command }) {
+  async function runTerminalCommand({ command }, { signal } = {}) {
     if (!command) {
       return { success: false, error: "No command given" };
     }
@@ -258,15 +271,28 @@ function createTools(workspaceRoot, { confirm = async () => false } = {}) {
 
     console.log(`💻 Executing Command: ${command}`);
     return new Promise((resolve) => {
-      const options = { cwd: root, timeout: COMMAND_TIMEOUT_MS, maxBuffer: COMMAND_MAX_BUFFER };
-      exec(command, options, (error, stdout, stderr) => {
+      let stopReason = null;
+
+      const child = exec(command, { cwd: root, maxBuffer: COMMAND_MAX_BUFFER }, (error, stdout, stderr) => {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+
         if (error) {
-          const message = error.killed ? `Command timed out after ${COMMAND_TIMEOUT_MS / 1000}s` : error.message;
-          resolve({ success: false, error: truncateOutput(message), stdout: truncateOutput(stdout), stderr: truncateOutput(stderr) });
+          resolve({ success: false, error: truncateOutput(stopReason || error.message), stdout: truncateOutput(stdout), stderr: truncateOutput(stderr) });
           return;
         }
         resolve({ success: true, stdout: truncateOutput(stdout), stderr: truncateOutput(stderr) });
       });
+
+      const stop = (reason) => {
+        stopReason = reason;
+        killProcessTree(child);
+      };
+      const onAbort = () => stop(STOPPED_BY_USER);
+
+      // Not exec's `timeout` option: that uses child.kill(), see killProcessTree
+      const timer = setTimeout(() => stop(`Command timed out after ${COMMAND_TIMEOUT_MS / 1000}s`), COMMAND_TIMEOUT_MS);
+      signal?.addEventListener("abort", onAbort, { once: true });
     });
   }
 

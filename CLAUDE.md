@@ -64,7 +64,7 @@ npm run lint         # eslint
   - `_convertToOpenAIMessages`: emit all function calls of a model turn (not just `parts[0]`) with their real ids; emit each `functionResponse` as `{ role: 'tool', tool_call_id: id, content: JSON.stringify(response) }` instead of user text.
   - Test a multi-step task (list → read → write) end to end with an OpenAI key.
 
-- [ ] **4. Make the Stop button actually stop.**
+- [x] **4. Make the Stop button actually stop.**
   - Gemini: pass `abortSignal: this.abortController.signal` inside `config`.
   - OpenAI: pass `{ signal }` as the second argument to `chat.completions.create`.
   - Check `signal.aborted` before each tool call; keep a reference to the running `exec` child and `kill()` it on stop.

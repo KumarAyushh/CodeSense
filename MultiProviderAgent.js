@@ -207,7 +207,7 @@ class MultiProviderAgent {
         ],
         tools: tools.length > 0 ? tools : undefined,
         tool_choice: tools.length > 0 ? 'auto' : undefined
-      });
+      }, { signal: config.config.abortSignal });
 
       return this._convertFromOpenAIResponse(response);
     }
@@ -526,6 +526,7 @@ Now help the user with their code.`,
 
     // Create abort controller for this request
     this.abortController = new AbortController();
+    const { signal } = this.abortController;
 
     const MAX_TURNS = 15;
     let turn = 0;
@@ -533,7 +534,7 @@ Now help the user with their code.`,
     const MAX_RETRIES = 2;
 
     try {
-      while (turn < MAX_TURNS) {
+      while (turn < MAX_TURNS && !signal.aborted) {
         turn++;
         console.log(`\n🔄 Turn ${turn}/${MAX_TURNS}`);
 
@@ -577,12 +578,15 @@ IMPORTANT:
 -   Keep responses professional and concise.
 -   Use emojis sparingly (🔴 for critical bugs, 🟡 for improvements).`,
               tools,
+              abortSignal: signal,
             },
           });
         } catch (apiError) {
+          if (signal.aborted) throw apiError;
+
           // Handle specific API errors
           const errorMsg = apiError.message || String(apiError);
-          
+
           if (errorMsg.includes('function call turn') || errorMsg.includes('INVALID_ARGUMENT')) {
             console.error('🔴 Conversation state error:', errorMsg);
             
@@ -625,6 +629,14 @@ IMPORTANT:
           for (const functionCall of result.functionCalls) {
             const { id, name, args } = functionCall;
 
+            // Every call still needs a response, or the turn would be dropped from history
+            if (signal.aborted) {
+              functionResponses.push({
+                functionResponse: { id, name, response: { error: 'Stopped by user' } }
+              });
+              continue;
+            }
+
             console.log(`🔧 Tool: ${name}`);
 
             // Emit activity based on tool type
@@ -632,8 +644,8 @@ IMPORTANT:
             emitActivity(name, activityName, 'running', this._getActivityDetails(name, args));
             
             try {
-              const toolResponse = await toolFunctions[name](args);
-              
+              const toolResponse = await toolFunctions[name](args, { signal });
+
               // Emit success activity
               const isSuccess = toolResponse.success !== false && !toolResponse.error;
               emitActivity(name, activityName, isSuccess ? 'success' : 'error', 
@@ -683,10 +695,9 @@ IMPORTANT:
         trimHistory();
       }
     } catch (error) {
-      // Handle abort error
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      // Handle abort error (the webview already shows that generation stopped)
+      if (signal.aborted || error.name === 'AbortError' || error.message?.includes('aborted')) {
         console.log('✅ Generation canceled successfully');
-        messageCallback('Generation stopped.');
         return;
       }
 
