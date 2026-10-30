@@ -69,7 +69,7 @@ npm run lint         # eslint
   - OpenAI: pass `{ signal }` as the second argument to `chat.completions.create`.
   - Check `signal.aborted` before each tool call; keep a reference to the running `exec` child and `kill()` it on stop.
 
-- [ ] **5. Fix webview bugs.**
+- [x] **5. Fix webview bugs.**
   - Copy buttons use inline `onclick`, which the nonce CSP blocks. Remove the inline handler and use one delegated click listener on the messages container. Then remove `'unsafe-inline'` from `script-src`.
   - Escape `conv.title` (and any other model/user text) before inserting into `innerHTML` in `renderHistory`.
   - Markdown links: only allow `http:`/`https:` URLs and escape `"` in the `href`.

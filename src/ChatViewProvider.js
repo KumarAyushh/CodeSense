@@ -258,7 +258,7 @@ class ChatViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}' 'unsafe-inline'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}'; font-src ${webview.cspSource} https://cdnjs.cloudflare.com;">
   <link
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     rel="stylesheet"
@@ -1519,7 +1519,10 @@ class ChatViewProvider {
       formatted = formatted.replace(/~~([^~]+)~~/g, '<del class="md-strikethrough">$1</del>');
       
       // Links
-      formatted = formatted.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" class="md-link" target="_blank">$1</a>');
+      formatted = formatted.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, (match, label, url) => {
+        if (!/^https?:\\/\\//i.test(url)) return match;
+        return '<a href="' + url.replace(/"/g, '&quot;') + '" class="md-link" target="_blank">' + label + '</a>';
+      });
       
       // Status indicators
       formatted = formatted.replace(/\\b(Error|ERROR|error)(:?\\s*)([^\\n]*)/g, '<span class="status-error"><span class="status-icon">✖</span><strong>$1</strong>$2$3</span>');
@@ -1542,25 +1545,10 @@ class ChatViewProvider {
         return '<ul class="md-unordered-list">' + match + '</ul>';
       });
       
-      // Restore code blocks with highlighting
-      codeBlocks.forEach((block, index) => {
-        const langLabel = block.lang !== 'plaintext' ? '<span class="code-lang">' + block.lang + '</span>' : '';
-        const copyBtn = '<button class="copy-btn" onclick="copyCode(this)" title="Copy code">📋</button>';
-        let code = block.code
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        code = highlightSyntax(code, block.lang);
-        formatted = formatted.replace(
-          '%%CODEBLOCK_' + index + '%%',
-          '<div class="code-block-wrapper">' + langLabel + copyBtn + '<pre class="md-code-block"><code>' + code + '</code></pre></div>'
-        );
-      });
-      
       // Restore inline code
       inlineCodes.forEach((code, index) => {
         const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        formatted = formatted.replace('%%INLINECODE_' + index + '%%', '<code class="md-inline-code">' + escaped + '</code>');
+        formatted = formatted.replace('%%INLINECODE_' + index + '%%', () => '<code class="md-inline-code">' + escaped + '</code>');
       });
       
       // Convert line breaks
@@ -1570,7 +1558,7 @@ class ChatViewProvider {
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        const isBlock = /^<(h[1-6]|ul|ol|li|pre|div|blockquote|hr)/.test(line) || /<\\/(h[1-6]|ul|ol|li|pre|div|blockquote)>$/.test(line);
+        const isBlock = /^(<(h[1-6]|ul|ol|li|pre|div|blockquote|hr)|%%CODEBLOCK_)/.test(line) || /<\\/(h[1-6]|ul|ol|li|pre|div|blockquote)>$/.test(line);
         
         if (line === '') {
           if (inParagraph) { result += '</p>\\n'; inParagraph = false; }
@@ -1584,7 +1572,22 @@ class ChatViewProvider {
         }
       }
       if (inParagraph) result += '</p>';
-      
+
+      // Restore code blocks with highlighting (after the line handling above, which would strip their indentation)
+      codeBlocks.forEach((block, index) => {
+        const langLabel = block.lang !== 'plaintext' ? '<span class="code-lang">' + block.lang + '</span>' : '';
+        const copyBtn = '<button class="copy-btn" title="Copy code">📋</button>';
+        let code = block.code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        code = highlightSyntax(code, block.lang);
+        result = result.replace(
+          '%%CODEBLOCK_' + index + '%%',
+          () => '<div class="code-block-wrapper">' + langLabel + copyBtn + '<pre class="md-code-block"><code>' + code + '</code></pre></div>'
+        );
+      });
+
       return result;
     }
     
@@ -1597,32 +1600,25 @@ class ChatViewProvider {
       };
       
       const langKw = keywords[lang] || keywords['javascript'] || [];
-      
-      // Strings
-      code = code.replace(/(".*?"|'.*?')/g, '<span class="hl-string">$1</span>');
-      
-      // Comments
-      code = code.replace(/(\\/\\/[^\\n]*)/g, '<span class="hl-comment">$1</span>');
-      code = code.replace(/(\\/\\*[\\s\\S]*?\\*\\/)/g, '<span class="hl-comment">$1</span>');
-      code = code.replace(/(#[^\\n]*)/g, '<span class="hl-comment">$1</span>');
-      
-      // Numbers
-      code = code.replace(/\\b(\\d+\\.?\\d*)\\b/g, '<span class="hl-number">$1</span>');
-      
-      // Keywords
-      langKw.forEach(kw => {
-        const regex = new RegExp('\\\\b(' + kw + ')\\\\b', 'g');
-        code = code.replace(regex, '<span class="hl-keyword">$1</span>');
+
+      // Match everything in one pass, so no rule can run inside the spans added by another
+      const tokens = [
+        { className: 'hl-comment', pattern: /\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/|#[^\\n]*/.source },
+        { className: 'hl-string', pattern: /".*?"|'.*?'/.source },
+        { className: 'hl-number', pattern: /\\b\\d+\\.?\\d*\\b/.source },
+        { className: 'hl-keyword', pattern: '\\\\b(?:' + langKw.join('|') + ')\\\\b' },
+        { className: 'hl-function', pattern: /\\b[a-zA-Z_][a-zA-Z0-9_]*(?=\\s*\\()/.source }
+      ];
+      const tokenRegex = new RegExp(tokens.map(t => '(' + t.pattern + ')').join('|'), 'g');
+
+      return code.replace(tokenRegex, (match, ...groups) => {
+        const token = tokens[groups.findIndex(group => group !== undefined)];
+        return '<span class="' + token.className + '">' + match + '</span>';
       });
-      
-      // Functions
-      code = code.replace(/\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(/g, '<span class="hl-function">$1</span>(');
-      
-      return code;
     }
     
     // Copy code function
-    window.copyCode = function(btn) {
+    function copyCode(btn) {
       const codeBlock = btn.nextElementSibling.querySelector('code');
       const text = codeBlock.textContent;
       navigator.clipboard.writeText(text).then(() => {
@@ -1632,7 +1628,7 @@ class ChatViewProvider {
         btn.textContent = '✓';
         setTimeout(() => { btn.textContent = '📋'; }, 2000);
       });
-    };
+    }
 
     // Elements
     const screens = {
@@ -1656,6 +1652,12 @@ class ChatViewProvider {
     };
 
     const messagesContainer = document.getElementById('messages-container');
+
+    // One listener for every copy button, including ones added later
+    messagesContainer.addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('.copy-btn');
+      if (copyBtn) copyCode(copyBtn);
+    });
 
     // Track AI processing state
     let isAIProcessing = false;
@@ -1849,10 +1851,10 @@ class ChatViewProvider {
         const date = new Date(conv.timestamp).toLocaleString();
 
         item.innerHTML = \`
-          <div class="history-title">\${conv.title || 'New Chat'}</div>
+          <div class="history-title">\${escapeHtml(conv.title || 'New Chat')}</div>
           <div class="history-meta">
-            <span>\${date}</span>
-            <button class="delete-history-btn" title="Delete conversation" data-id="\${conv.id}">
+            <span>\${escapeHtml(date)}</span>
+            <button class="delete-history-btn" title="Delete conversation" data-id="\${escapeHtml(conv.id)}">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
@@ -2180,8 +2182,8 @@ class ChatViewProvider {
         item.innerHTML = \`
           <div class="activity-icon \${iconInfo.class}">\${iconInfo.icon}</div>
           <div class="activity-content">
-            <div class="activity-name">\${activity.name}</div>
-            \${activity.details ? '<div class="activity-details">' + truncatePath(activity.details) + '</div>' : ''}
+            <div class="activity-name">\${escapeHtml(activity.name)}</div>
+            \${activity.details ? '<div class="activity-details">' + escapeHtml(truncatePath(activity.details)) + '</div>' : ''}
           </div>
           <div class="activity-status \${activity.status}">\${getStatusIcon(activity.status)}</div>
         \`;
