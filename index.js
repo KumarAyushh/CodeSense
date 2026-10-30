@@ -81,7 +81,18 @@ function resolveInWorkspace(root, p) {
 // TOOL FUNCTIONS
 // ============================================
 
-function createTools(workspaceRoot) {
+const USER_DENIED = "User denied this action";
+const COMMAND_TIMEOUT_MS = 60000;
+const COMMAND_MAX_BUFFER = 10 * 1024 * 1024;
+const MAX_OUTPUT_CHARS = 20000;
+
+function truncateOutput(text) {
+  if (text.length <= MAX_OUTPUT_CHARS) return text;
+  return `${text.slice(0, MAX_OUTPUT_CHARS)}\n... [truncated ${text.length - MAX_OUTPUT_CHARS} characters]`;
+}
+
+// `confirm(message)` asks the user to approve a destructive action. Without one, those actions are denied.
+function createTools(workspaceRoot, { confirm = async () => false } = {}) {
   const root = path.resolve(workspaceRoot);
 
   async function listDirectory({ directory }) {
@@ -172,6 +183,9 @@ function createTools(workspaceRoot) {
     try {
       const fullPath = resolveInWorkspace(root, file_path);
       if (fs.existsSync(fullPath)) {
+        if (!(await confirm(`Delete file: ${fullPath}`))) {
+          return { success: false, error: USER_DENIED };
+        }
         fs.unlinkSync(fullPath);
         console.log(`🗑️ Deleted: ${fullPath}`);
         return { success: true };
@@ -193,6 +207,10 @@ function createTools(workspaceRoot) {
         const stat = fs.statSync(fullPath);
         if (!stat.isDirectory()) {
           return { success: false, error: "Path is not a directory" };
+        }
+
+        if (!(await confirm(`Delete folder${recursive ? " and everything in it" : ""}: ${fullPath}`))) {
+          return { success: false, error: USER_DENIED };
         }
 
         if (recursive) {
@@ -231,14 +249,23 @@ function createTools(workspaceRoot) {
   }
 
   async function runTerminalCommand({ command }) {
+    if (!command) {
+      return { success: false, error: "No command given" };
+    }
+    if (!(await confirm(`Run command: ${command}`))) {
+      return { success: false, error: USER_DENIED };
+    }
+
     console.log(`💻 Executing Command: ${command}`);
     return new Promise((resolve) => {
-      exec(command, (error, stdout, stderr) => {
+      const options = { cwd: root, timeout: COMMAND_TIMEOUT_MS, maxBuffer: COMMAND_MAX_BUFFER };
+      exec(command, options, (error, stdout, stderr) => {
         if (error) {
-          resolve({ success: false, error: error.message, stderr });
+          const message = error.killed ? `Command timed out after ${COMMAND_TIMEOUT_MS / 1000}s` : error.message;
+          resolve({ success: false, error: truncateOutput(message), stdout: truncateOutput(stdout), stderr: truncateOutput(stderr) });
           return;
         }
-        resolve({ success: true, stdout, stderr });
+        resolve({ success: true, stdout: truncateOutput(stdout), stderr: truncateOutput(stderr) });
       });
     });
   }
@@ -354,7 +381,9 @@ class CodeReviewerAgent {
   }
 
   async run(directoryPath, interactionCallback) {
-    const toolFunctions = createTools(directoryPath);
+    const toolFunctions = createTools(directoryPath, {
+      confirm: async (message) => readlineSync.keyInYN(`\n${message}`) === true,
+    });
 
     console.log("Starting Code Review Agent...");
     console.log(`Target: ${directoryPath}\n`);

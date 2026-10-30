@@ -51,7 +51,7 @@ npm run lint         # eslint
   ```
   Apply to `listDirectory`, `readFile`, `writeFile`, `deleteFile`, `deleteDirectory`, `createDirectory`. Also refuse to delete the workspace root itself. Fix `listDirectory`'s skip check to match path segments (it currently skips any path containing "build" or "dist", e.g. `src/builder.js`).
 
-- [ ] **2. Require user approval for destructive actions.**
+- [x] **2. Require user approval for destructive actions.**
   Before `deleteFile`, `deleteDirectory`, and `runTerminalCommand` execute, show
   `vscode.window.showWarningMessage(<exact path or command>, { modal: true }, 'Allow')`.
   If not allowed, return `{ success: false, error: 'User denied this action' }` to the model.

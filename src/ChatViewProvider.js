@@ -168,7 +168,12 @@ class ChatViewProvider {
       };
 
       // Run the agent with the user's message
-      const toolFunctions = this._createTools(workspacePath);
+      const toolFunctions = this._createTools(workspacePath, {
+        confirm: async (message) => {
+          const choice = await vscode.window.showWarningMessage(message, { modal: true }, 'Allow');
+          return choice === 'Allow';
+        }
+      });
       await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, activityCallback, toolFunctions, this._tools);
 
     } catch (error) {
