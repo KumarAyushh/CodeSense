@@ -36,28 +36,28 @@
   "contributes": {
     "commands": [
       {
-        "command": "lec7.addApiKey",
+        "command": "codesense.addApiKey",
         "title": "CodeSense: Add API Key"
       },
       {
-        "command": "lec7.resetApiKey",
+        "command": "codesense.resetApiKey",
         "title": "CodeSense: Reset API Key"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "lec7-container",
+          "id": "codesense-container",
           "title": "CodeSense AI",
           "icon": "media/codesense.svg"
         }
       ]
     },
     "views": {
-      "lec7-container": [
+      "codesense-container": [
         {
           "type": "webview",
-          "id": "lec7.chatView",
+          "id": "codesense.chatView",
           "name": "AI Chat",
           "icon": "media/codesense.svg"
         }

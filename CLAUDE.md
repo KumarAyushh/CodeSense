@@ -79,11 +79,11 @@ npm run lint         # eslint
   - Fix the stale `codesense-ai-1.0.4.vsix` reference.
   - Add a short **Security model** section: workspace-only paths, approval prompts for deletes/commands, command timeout.
 
-- [ ] **Release 1.0.8** — bump version, add CHANGELOG.md entry, publish.
+- [x] **Release 1.0.8** — bump version, add CHANGELOG.md entry, publish.
 
 ### Phase 2 — Cleanup
 
-- [ ] **7. Rename `lec7` → `codesense`** for all command, view, and container ids in `package.json` and code.
+- [x] **7. Rename `lec7` → `codesense`** for all command, view, and container ids in `package.json` and code.
 - [ ] **8. Move webview code out of `ChatViewProvider.js`** into `media/main.js` and `media/style.css`, loaded via `webview.asWebviewUri(...)` with the nonce on the script tag. Goal: `ChatViewProvider.js` under ~300 lines.
 - [ ] **9. Split `index.js`.** Move extension tools to `src/tools.js`. Either delete the standalone CLI agent (`CodeReviewAgent` / duplicate `run()` loop) or move it to `cli/`. Remove `readline-sync` and `dotenv` from extension dependencies if unused.
 - [ ] **10. Remove dead code**: commented-out blocks in `extension.js` and `index.js`, the stale ESM comment at the top of `ChatViewProvider.js`, the unused `run()` in `MultiProviderAgent.js`, the unused `clearApiKey` message case, the no-op `onDidChangeVisibility` handler.

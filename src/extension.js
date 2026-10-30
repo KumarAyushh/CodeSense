@@ -33,13 +33,13 @@ async function activate(context) {
     const provider = new ChatViewProvider(context.extensionUri, context);
 
     context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider('lec7.chatView', provider)
+        vscode.window.registerWebviewViewProvider('codesense.chatView', provider)
         
     );
 
     // 🔹 Command fallback (optional manual key entry)
     context.subscriptions.push(
-        vscode.commands.registerCommand('lec7.addApiKey', async () => {
+        vscode.commands.registerCommand('codesense.addApiKey', async () => {
             const provider = await vscode.window.showQuickPick(
                 ['Google Gemini', 'OpenAI', 'Anthropic', 'Groq'],
                 { placeHolder: 'Select AI Provider' }
@@ -64,7 +64,7 @@ async function activate(context) {
 
     // 🔹 Reset API Key Command
     context.subscriptions.push(
-        vscode.commands.registerCommand('lec7.resetApiKey', async () => {
+        vscode.commands.registerCommand('codesense.resetApiKey', async () => {
             const confirmation = await vscode.window.showWarningMessage(
                 'Are you sure you want to reset your API key? You will need to re-enter it to use CodeSense AI.',
                 { modal: true },
