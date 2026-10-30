@@ -22,6 +22,8 @@ pnpm-debug.log*
 # Build / Dist
 # =========================
 dist/
+scratch/*
+!scratch/.gitkeep
 build/
 out/
 .next/

@@ -26,7 +26,7 @@ npm run build        # bundle src/ into dist/extension.js (npm run watch to rebu
 
 ## Rules for working in this repo
 
-- **Never test the agent against a real project folder.** Until Phase 1 is done, the AI inside the extension can run any shell command and delete any path on disk. In the Extension Development Host, open an empty scratch folder only.
+- **Never test the agent against a real project folder.** Until Phase 1 is done, the AI inside the extension can run any shell command and delete any path on disk. F5 opens the empty `scratch/` folder in the Extension Development Host; only use that or another empty folder.
 - Work on a branch per phase (`git checkout -b phase-1-security` etc.), commit after each task, merge when the phase works.
 - Keep history format Gemini-style internally (`role: user|model`, `parts: [{text}|{functionCall}|{functionResponse}]`) and convert only at the provider boundary.
 - Gemini rule: a model `functionCall` turn must be immediately followed by a `user` turn containing the matching `functionResponse` parts. `_validateAndSanitizeHistory` enforces this — don't break it when changing history code.

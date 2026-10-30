@@ -126,7 +126,7 @@ class ChatViewProvider {
     if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
       workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
     } else {
-      this._view.webview.postMessage({ type: 'aiResponse', text: 'Please open a folder/workspace first to review code.' });
+      this._view.webview.postMessage({ type: 'aiResponse', text: 'Please open a folder first (File → Open Folder). CodeSense can only work inside an open folder.' });
       return;
     }
 
