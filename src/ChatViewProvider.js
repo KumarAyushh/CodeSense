@@ -128,10 +128,10 @@ class ChatViewProvider {
       try {
         // Load the multi-provider agent
         const { MultiProviderAgent } = require(path.join(this._extensionUri.fsPath, 'MultiProviderAgent.js'));
-        const { toolFunctions, tools } = require(path.join(this._extensionUri.fsPath, 'index.js'));
+        const { createTools, tools } = require(path.join(this._extensionUri.fsPath, 'index.js'));
 
         this._agent = new MultiProviderAgent(provider, apiKey);
-        this._toolFunctions = toolFunctions;
+        this._createTools = createTools;
         this._tools = tools;
       } catch (e) {
         this._view.webview.postMessage({ type: 'aiResponse', text: 'Error loading Agent: ' + e.message });
@@ -168,7 +168,8 @@ class ChatViewProvider {
       };
 
       // Run the agent with the user's message
-      await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, activityCallback, this._toolFunctions, this._tools);
+      const toolFunctions = this._createTools(workspacePath);
+      await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, activityCallback, toolFunctions, this._tools);
 
     } catch (error) {
       // Provide user-friendly error messages

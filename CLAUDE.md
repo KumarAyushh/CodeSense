@@ -37,7 +37,7 @@ npm run lint         # eslint
 
 ### Phase 1 — Critical fixes
 
-- [ ] **1. Sandbox all file tools to the workspace.**
+- [x] **1. Sandbox all file tools to the workspace.**
   Turn the tools in `index.js` into a factory `createTools(workspaceRoot)` and resolve every path through:
   ```js
   function resolveInWorkspace(root, p) {

@@ -41,169 +41,218 @@ dotenv.config();
 
 
 // ============================================
+// WORKSPACE SANDBOX
+// ============================================
+
+const SKIPPED_DIRS = new Set(["node_modules", "dist", "build", ".git"]);
+
+function assertInWorkspace(root, full, p) {
+  const rel = path.relative(root, full);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error(`Path outside workspace: ${p}`);
+  }
+}
+
+function pathExists(p) {
+  try {
+    fs.lstatSync(p);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+function resolveInWorkspace(root, p) {
+  const full = path.resolve(root, p);
+  assertInWorkspace(root, full, p);
+
+  // A symlink inside the workspace can point outside it, so check the real
+  // location too. New files don't exist yet: check their closest existing parent.
+  let existing = full;
+  while (!pathExists(existing)) {
+    existing = path.dirname(existing);
+  }
+  assertInWorkspace(fs.realpathSync(root), fs.realpathSync(existing), p);
+
+  return full;
+}
+
+// ============================================
 // TOOL FUNCTIONS
 // ============================================
 
-async function listDirectory({ directory }) {
-  const files = [];
-  const extension = [".js", ".jsx", ".ts", ".tsx", ".html", ".css", ".json", ".md"]; // Added json/md for context
+function createTools(workspaceRoot) {
+  const root = path.resolve(workspaceRoot);
 
-  function scanDir(dir) {
-    try {
-      const items = fs.readdirSync(dir);
-      for (const item of items) {
-        const fullPath = path.join(dir, item);
-        if (
-          fullPath.includes("node_modules") ||
-          fullPath.includes("dist") ||
-          fullPath.includes("build") ||
-          fullPath.includes(".git")
-        )
-          continue;
+  async function listDirectory({ directory }) {
+    const files = [];
+    const extension = [".js", ".jsx", ".ts", ".tsx", ".html", ".css", ".json", ".md"]; // Added json/md for context
 
-        const stat = fs.statSync(fullPath);
-        if (stat.isDirectory()) {
-          scanDir(fullPath);
-        } else if (stat.isFile()) {
-          const ext = path.extname(item);
-          if (extension.includes(ext)) {
-            files.push(fullPath);
+    function scanDir(dir) {
+      try {
+        const items = fs.readdirSync(dir);
+        for (const item of items) {
+          if (SKIPPED_DIRS.has(item)) continue;
+
+          const fullPath = path.join(dir, item);
+          const stat = fs.lstatSync(fullPath); // lstat: don't follow symlinks out of the workspace
+          if (stat.isDirectory()) {
+            scanDir(fullPath);
+          } else if (stat.isFile()) {
+            const ext = path.extname(item);
+            if (extension.includes(ext)) {
+              files.push(fullPath);
+            }
           }
         }
+      } catch (err) {
+        console.error(`Error scanning directory ${dir}:`, err.message);
       }
+    }
+
+    try {
+      const fullDirectory = resolveInWorkspace(root, directory);
+      scanDir(fullDirectory);
+      console.log(`Found ${files.length} files in ${fullDirectory}`);
+      return { files };
     } catch (err) {
-      console.error(`Error scanning directory ${dir}:`, err.message);
+      return { error: err.message };
     }
   }
 
-  scanDir(directory);
-  console.log(`Found ${files.length} files in ${directory}`);
-  return { files };
-}
-
-async function readFile({ file_path }) {
-  try {
-    const contents = fs.readFileSync(file_path, "utf-8");
-    console.log(`Reading: ${file_path}`);
-    return { contents };
-  } catch (err) {
-    return { error: `Failed to read file: ${err.message}` };
+  async function readFile({ file_path }) {
+    try {
+      const fullPath = resolveInWorkspace(root, file_path);
+      const contents = fs.readFileSync(fullPath, "utf-8");
+      console.log(`Reading: ${fullPath}`);
+      return { contents };
+    } catch (err) {
+      return { error: `Failed to read file: ${err.message}` };
+    }
   }
-}
 
-async function writeFile({ file_path, contents }) {
-  try {
-    // Ensure parent directory exists
-    const dir = path.dirname(file_path);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-      console.log(`📁 Created directory: ${dir}`);
-    }
-    
-    // Read original content if file exists (for diff)
-    let originalContent = '';
-    const fileExists = fs.existsSync(file_path);
-    if (fileExists) {
-      originalContent = fs.readFileSync(file_path, 'utf-8');
-    }
-    
-    // Write new content
-    fs.writeFileSync(file_path, contents, "utf-8");
-    console.log(`✅ Writing: ${file_path}`);
-    
-    // Show diff if modifying existing file and running in VS Code
-    if (fileExists && originalContent !== contents && showDiff) {
-      try {
-        await showDiff(file_path, originalContent, contents);
-      } catch (e) {
-        console.warn('Could not show diff:', e.message);
+  async function writeFile({ file_path, contents }) {
+    try {
+      const fullPath = resolveInWorkspace(root, file_path);
+
+      // Ensure parent directory exists
+      const dir = path.dirname(fullPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+        console.log(`📁 Created directory: ${dir}`);
       }
-    }
-    
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-}
 
-async function deleteFile({ file_path }) {
-  try {
-    if (fs.existsSync(file_path)) {
-      fs.unlinkSync(file_path);
-      console.log(`🗑️ Deleted: ${file_path}`);
-      return { success: true };
-    }
-    return { success: false, error: "File not found" };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-}
-
-async function deleteDirectory({ directory_path, recursive = true }) {
-  try {
-    if (fs.existsSync(directory_path)) {
-      const stat = fs.statSync(directory_path);
-      if (!stat.isDirectory()) {
-        return { success: false, error: "Path is not a directory" };
+      // Read original content if file exists (for diff)
+      let originalContent = '';
+      const fileExists = fs.existsSync(fullPath);
+      if (fileExists) {
+        originalContent = fs.readFileSync(fullPath, 'utf-8');
       }
-      
-      if (recursive) {
-        // Recursively delete directory and all contents
-        fs.rmSync(directory_path, { recursive: true, force: true });
-      } else {
-        // Only delete if empty
-        const contents = fs.readdirSync(directory_path);
-        if (contents.length > 0) {
-          return { success: false, error: "Directory is not empty. Use recursive=true to delete non-empty directories." };
+
+      // Write new content
+      fs.writeFileSync(fullPath, contents, "utf-8");
+      console.log(`✅ Writing: ${fullPath}`);
+
+      // Show diff if modifying existing file and running in VS Code
+      if (fileExists && originalContent !== contents && showDiff) {
+        try {
+          await showDiff(fullPath, originalContent, contents);
+        } catch (e) {
+          console.warn('Could not show diff:', e.message);
         }
-        fs.rmdirSync(directory_path);
       }
-      
-      console.log(`🗑️ Deleted Directory: ${directory_path}`);
-      return { success: true };
-    }
-    return { success: false, error: "Directory not found" };
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-}
 
-async function createDirectory({ directory_path }) {
-  try {
-    if (!fs.existsSync(directory_path)) {
-      fs.mkdirSync(directory_path, { recursive: true });
-      console.log(`📁 Created Directory: ${directory_path}`);
       return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-    return { success: true, message: "Directory already exists" };
-  } catch (err) {
-    return { success: false, error: err.message };
   }
-}
 
-async function runTerminalCommand({ command }) {
-  console.log(`💻 Executing Command: ${command}`);
-  return new Promise((resolve) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ success: false, error: error.message, stderr });
-        return;
+  async function deleteFile({ file_path }) {
+    try {
+      const fullPath = resolveInWorkspace(root, file_path);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        console.log(`🗑️ Deleted: ${fullPath}`);
+        return { success: true };
       }
-      resolve({ success: true, stdout, stderr });
+      return { success: false, error: "File not found" };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  async function deleteDirectory({ directory_path, recursive = true }) {
+    try {
+      const fullPath = resolveInWorkspace(root, directory_path);
+      if (path.relative(root, fullPath) === "") {
+        return { success: false, error: "Refusing to delete the workspace root" };
+      }
+
+      if (fs.existsSync(fullPath)) {
+        const stat = fs.statSync(fullPath);
+        if (!stat.isDirectory()) {
+          return { success: false, error: "Path is not a directory" };
+        }
+
+        if (recursive) {
+          // Recursively delete directory and all contents
+          fs.rmSync(fullPath, { recursive: true, force: true });
+        } else {
+          // Only delete if empty
+          const contents = fs.readdirSync(fullPath);
+          if (contents.length > 0) {
+            return { success: false, error: "Directory is not empty. Use recursive=true to delete non-empty directories." };
+          }
+          fs.rmdirSync(fullPath);
+        }
+
+        console.log(`🗑️ Deleted Directory: ${fullPath}`);
+        return { success: true };
+      }
+      return { success: false, error: "Directory not found" };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  async function createDirectory({ directory_path }) {
+    try {
+      const fullPath = resolveInWorkspace(root, directory_path);
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+        console.log(`📁 Created Directory: ${fullPath}`);
+        return { success: true };
+      }
+      return { success: true, message: "Directory already exists" };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  async function runTerminalCommand({ command }) {
+    console.log(`💻 Executing Command: ${command}`);
+    return new Promise((resolve) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          resolve({ success: false, error: error.message, stderr });
+          return;
+        }
+        resolve({ success: true, stdout, stderr });
+      });
     });
-  });
-}
+  }
 
-// Map of tool functions
-const toolFunctions = {
-  listDirectory,
-  readFile,
-  writeFile,
-  deleteFile,
-  deleteDirectory,
-  createDirectory,
-  runTerminalCommand,
-};
+  return {
+    listDirectory,
+    readFile,
+    writeFile,
+    deleteFile,
+    deleteDirectory,
+    createDirectory,
+    runTerminalCommand,
+  };
+}
 
 // ============================================
 // TOOL DECLARATIONS
@@ -305,6 +354,8 @@ class CodeReviewerAgent {
   }
 
   async run(directoryPath, interactionCallback) {
+    const toolFunctions = createTools(directoryPath);
+
     console.log("Starting Code Review Agent...");
     console.log(`Target: ${directoryPath}\n`);
 
@@ -480,4 +531,4 @@ if (require.main === module) {
   agent.run(directory, cliCallback);
 }
 
-module.exports = { CodeReviewerAgent, toolFunctions, tools };
+module.exports = { CodeReviewerAgent, createTools, resolveInWorkspace, tools };
