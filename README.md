@@ -147,7 +147,7 @@ CodeSense/
    code .
    ```
 
-3. Press `F5` to launch Extension Development Host
+3. Press `F5` to bundle the extension into `dist/` and launch the Extension Development Host. While working, `npm run watch` rebuilds on save; reload the host window to pick up changes.
 
 4. Open any workspace and test the extension
 
@@ -204,7 +204,7 @@ MIT License - see LICENSE file for details
 - [ ] Custom prompt templates
 - [ ] Export conversations to markdown
 - [ ] Settings UI for customization
-- [ ] Code bundling for reduced extension size
+- [x] Code bundling for reduced extension size
 
 ## Author
 

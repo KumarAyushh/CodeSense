@@ -19,7 +19,8 @@ media/main.js, style.css  Webview frontend, loaded via asWebviewUri
 ```bash
 npm install          # install dependencies
 npm run lint         # eslint
-# Run the extension: open in VS Code and press F5 (Extension Development Host)
+npm run build        # bundle src/ into dist/extension.js (npm run watch to rebuild on save)
+# Run the extension: open in VS Code and press F5 (builds, then opens the Extension Development Host)
 # Publish: npx @vscode/vsce publish patch   (needs Marketplace PAT)
 ```
 
@@ -88,7 +89,7 @@ npm run lint         # eslint
 - [x] **8. Move webview code out of `ChatViewProvider.js`** into `media/main.js` and `media/style.css`, loaded via `webview.asWebviewUri(...)` with the nonce on the script tag. Goal: `ChatViewProvider.js` under ~300 lines.
 - [x] **9. Split `index.js`.** Move extension tools to `src/tools.js`. Either delete the standalone CLI agent (`CodeReviewAgent` / duplicate `run()` loop) or move it to `cli/`. Remove `readline-sync` and `dotenv` from extension dependencies if unused.
 - [x] **10. Remove dead code**: commented-out blocks in `extension.js` and `index.js`, the stale ESM comment at the top of `ChatViewProvider.js`, the unused `run()` in `MultiProviderAgent.js`, the unused `clearApiKey` message case, the no-op `onDidChangeVisibility` handler.
-- [ ] **11. Bundle with esbuild.** Output to `dist/extension.js`, point `main` at it, and exclude `node_modules` in `.vscodeignore` (it is currently shipped in the .vsix).
+- [x] **11. Bundle with esbuild.** Output to `dist/extension.js`, point `main` at it, and exclude `node_modules` in `.vscodeignore` (it is currently shipped in the .vsix).
 
 ### Phase 3 — Quality
 

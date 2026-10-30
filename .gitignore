@@ -42,8 +42,10 @@ Thumbs.db
 # =========================
 # Editor / IDE
 # =========================
-.vscode/
+.vscode/*
 !.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea/
 *.swp
 *.vsix
