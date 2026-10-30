@@ -3,14 +3,6 @@ const path = require('path');
 const fs = require('fs');
 const { showDiff } = require('./diffUtil');
 
-// We need to import the agent using dynamic import because index.js is an ES Module
-// or we need to bundle it. For simplicity in this environment, let's try dynamic import.
-// However, 'require' inside a VS Code extension with 'type: module' in package.json usually works 
-// if we stick to CommonJS for the extension entry point.
-// But index.js is ESM. This might be tricky without a bundler.
-// Strategy: require the ESM file might fail.
-// Alternative: We will assume we can use dynamic import().
-
 class ChatViewProvider {
   constructor(extensionUri, context) {
     this._extensionUri = extensionUri;
@@ -28,11 +20,6 @@ class ChatViewProvider {
       ]
     };
 
-    // Retain webview content when hidden (prevents losing chat on tab switch)
-    webviewView.onDidChangeVisibility(() => {
-      // Webview visibility changed - state is preserved via getState/setState
-    });
-
     // Check for existing API key BEFORE setting HTML
     await this._initializeWebview();
 
@@ -46,12 +33,6 @@ class ChatViewProvider {
           await this._context.secrets.store('ai_provider', data.provider);
           await this._context.secrets.store('ai_api_key', data.key);
           this._view.webview.postMessage({ type: 'systemMessage', text: `${data.provider} API Key saved successfully! You can now start chatting.` });
-          break;
-        case 'clearApiKey':
-          // For testing: clear stored credentials
-          await this._context.secrets.delete('ai_provider');
-          await this._context.secrets.delete('ai_api_key');
-          this._view.webview.postMessage({ type: 'apiKeyCleared' });
           break;
         case 'resetApiKey':
           // Reset API Key - delete all stored keys

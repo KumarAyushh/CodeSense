@@ -8,28 +8,6 @@ async function activate(context) {
     // Cleanup old diff temp files on startup
     cleanupOldDiffs();
 
-    // // ⚠️ DEV ONLY: reset API keys on every launch (clear all known keys)
-    // try {
-    //     const keysToDelete = [
-    //         'ai_api_key',
-    //         'ai_provider',
-    //         'gemini_api_key',
-    //         'google_gemini_api_key',
-    //         'openai_api_key',
-    //         'anthropic_api_key',
-    //         'groq_api_key'
-    //     ];
-    //     for (const k of keysToDelete) {
-    //         try {
-    //             await context.secrets.delete(k);
-    //         } catch (e) {
-    //             // ignore individual delete errors
-    //         }
-    //     }
-    // } catch (e) {
-    //     console.warn('Error clearing secrets on startup:', e);
-    // }
-
     const provider = new ChatViewProvider(context.extensionUri, context);
 
     context.subscriptions.push(
