@@ -41,7 +41,7 @@ Install directly from the Visual Studio Marketplace:
 
 Or install from a VSIX file (manual install):
 
-1. Download the `codesense-ai-1.0.4.vsix` file from the releases or build artifacts.
+1. Download the latest `codesense-ai-<version>.vsix` file from the releases or build artifacts.
 2. In VS Code, open the Command Palette and run `Extensions: Install from VSIX...` and select the downloaded file.
 
 ## Usage
@@ -52,7 +52,7 @@ Or install from a VSIX file (manual install):
 2. **Configure API Key**
    - Select your AI provider (Google Gemini or OpenAI)
    - Enter your API key (stored securely)
-   - Keys are encrypted and never leave your machine
+   - Keys are stored locally in VS Code SecretStorage and sent only to the provider you choose.
 
 3. **Start Chatting**
    - Ask questions about your code
@@ -63,7 +63,7 @@ Or install from a VSIX file (manual install):
 ## Supported AI Providers
 
 - ✅ **Google Gemini** (fully implemented)
-- ✅ **OpenAI** (GPT-4o and GPT-4o-mini)
+- ✅ **OpenAI** (GPT-4o)
 - 🚧 **Anthropic Claude** (coming soon)
 - 🚧 **Groq** (coming soon)
 
@@ -86,7 +86,7 @@ Or install from a VSIX file (manual install):
 - Create directory structures
 
 ### Terminal Commands
-- Execute shell commands
+- Execute shell commands (each one needs your approval)
 - Install packages
 - Run build scripts
 - Manage git operations
@@ -102,7 +102,7 @@ Or install from a VSIX file (manual install):
 ### Diff Visualization
 - **Automatic side-by-side comparison** when AI modifies existing code
 - **Visual changes display** with green additions and red deletions
-- **One-click review** before accepting AI changes
+- **Review what changed** right after the AI writes a file (the change is already saved, so use undo or git to revert it)
 - **Native VS Code diff viewer** - familiar interface
 - **Auto-cleanup** of temporary diff files (1 hour expiration)
 
@@ -176,7 +176,14 @@ Contributions are welcome! Please:
 - API keys are stored using VS Code's secure secret storage
 - Keys are never transmitted except to the official AI provider APIs
 - No telemetry or data collection
-- All processing happens locally
+- Your messages, plus the file contents and command output the AI reads, are sent to the provider you choose
+
+### Security model
+
+- **Workspace-only paths** - File tools can only touch the first folder open in your workspace. Paths outside it are refused, including through symlinks, and the workspace root itself can't be deleted.
+- **Approval prompts** - Deleting a file or folder and running a terminal command each show a prompt with the exact path or command. Nothing runs unless you click **Allow**.
+- **Command limits** - Commands run in the workspace folder and are killed after 60 seconds or when you press **Stop**. Long output is truncated before it reaches the AI.
+- **Limits of this model** - Creating and overwriting files inside the workspace does not ask for approval. An approved command runs with your own user permissions and is not sandboxed, so it can reach anything you can. Read commands before you allow them.
 
 ## License
 

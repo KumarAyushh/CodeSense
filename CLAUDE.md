@@ -74,7 +74,7 @@ npm run lint         # eslint
   - Escape `conv.title` (and any other model/user text) before inserting into `innerHTML` in `renderHistory`.
   - Markdown links: only allow `http:`/`https:` URLs and escape `"` in the `href`.
 
-- [ ] **6. Make the README accurate.**
+- [x] **6. Make the README accurate.**
   - Replace "Keys are encrypted and never leave your machine" with "Keys are stored locally in VS Code SecretStorage and sent only to the provider you choose."
   - Fix the stale `codesense-ai-1.0.4.vsix` reference.
   - Add a short **Security model** section: workspace-only paths, approval prompts for deletes/commands, command timeout.

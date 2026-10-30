@@ -38,6 +38,7 @@ Thumbs.db
 
 # Documentation (keep only README in package)
 docs/
+CLAUDE.md
 
 # Tests
 test/
