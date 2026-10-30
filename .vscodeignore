@@ -1,14 +1,17 @@
 # Git
 .git/
+.github/
 .gitignore
 .gitattributes
 
 # VS Code
 .vscode/
 .vscode-test/
+scratch/
 
-# Node
-# node_modules/ - COMMENTED OUT: We need to include dependencies in the extension package
+# Node (dependencies are bundled into dist/extension.js)
+node_modules/
+package-lock.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -16,11 +19,14 @@ yarn-error.log*
 # Environment
 .env
 .env.*
-!.env.example
+
+# Source (bundled into dist/extension.js)
+src/
+MultiProviderAgent.js
+**/*.map
 
 # Build
 out/
-dist/
 *.vsix
 
 # Development files

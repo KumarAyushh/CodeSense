@@ -6,11 +6,12 @@ CodeSense AI is a VS Code extension (published on the Marketplace as `kumarayush
 
 ```
 src/extension.js          Activation, command registration (addApiKey, resetApiKey)
-src/ChatViewProvider.js   Webview sidebar: message handling, history, and (currently) ~1,200 lines of inline HTML/CSS/JS
+src/ChatViewProvider.js   Webview sidebar: message handling, history, loads the page from media/
+src/tools.js              Tool implementations + tool declarations (no vscode import, so it can be tested in plain Node)
 src/diffUtil.js           Opens a VS Code diff view after a file is overwritten; cleans temp diff files
 MultiProviderAgent.js     Agent loop (runWithMessage), Gemini <-> OpenAI format conversion, history sanitizing
-index.js                  Tool implementations + tool declarations, plus an old standalone CLI agent (to be split out)
-media/main.js, style.css  Currently UNUSED (webview code is inlined in ChatViewProvider.js)
+media/index.html          Webview markup; {{placeholders}} are filled by _getHtmlForWebview
+media/main.js, style.css  Webview frontend, loaded via asWebviewUri
 ```
 
 ## Commands
@@ -18,13 +19,14 @@ media/main.js, style.css  Currently UNUSED (webview code is inlined in ChatViewP
 ```bash
 npm install          # install dependencies
 npm run lint         # eslint
-# Run the extension: open in VS Code and press F5 (Extension Development Host)
+npm run build        # bundle src/ into dist/extension.js (npm run watch to rebuild on save)
+# Run the extension: open in VS Code and press F5 (builds, then opens the Extension Development Host)
 # Publish: npx @vscode/vsce publish patch   (needs Marketplace PAT)
 ```
 
 ## Rules for working in this repo
 
-- **Never test the agent against a real project folder.** Until Phase 1 is done, the AI inside the extension can run any shell command and delete any path on disk. In the Extension Development Host, open an empty scratch folder only.
+- **Never test the agent against a real project folder.** Until Phase 1 is done, the AI inside the extension can run any shell command and delete any path on disk. F5 opens the empty `scratch/` folder in the Extension Development Host; only use that or another empty folder.
 - Work on a branch per phase (`git checkout -b phase-1-security` etc.), commit after each task, merge when the phase works.
 - Keep history format Gemini-style internally (`role: user|model`, `parts: [{text}|{functionCall}|{functionResponse}]`) and convert only at the provider boundary.
 - Gemini rule: a model `functionCall` turn must be immediately followed by a `user` turn containing the matching `functionResponse` parts. `_validateAndSanitizeHistory` enforces this — don't break it when changing history code.
@@ -79,15 +81,15 @@ npm run lint         # eslint
   - Fix the stale `codesense-ai-1.0.4.vsix` reference.
   - Add a short **Security model** section: workspace-only paths, approval prompts for deletes/commands, command timeout.
 
-- [ ] **Release 1.0.8** — bump version, add CHANGELOG.md entry, publish.
+- [x] **Release 1.0.8** — bump version, add CHANGELOG.md entry, publish.
 
 ### Phase 2 — Cleanup
 
-- [ ] **7. Rename `lec7` → `codesense`** for all command, view, and container ids in `package.json` and code.
-- [ ] **8. Move webview code out of `ChatViewProvider.js`** into `media/main.js` and `media/style.css`, loaded via `webview.asWebviewUri(...)` with the nonce on the script tag. Goal: `ChatViewProvider.js` under ~300 lines.
-- [ ] **9. Split `index.js`.** Move extension tools to `src/tools.js`. Either delete the standalone CLI agent (`CodeReviewAgent` / duplicate `run()` loop) or move it to `cli/`. Remove `readline-sync` and `dotenv` from extension dependencies if unused.
-- [ ] **10. Remove dead code**: commented-out blocks in `extension.js` and `index.js`, the stale ESM comment at the top of `ChatViewProvider.js`, the unused `run()` in `MultiProviderAgent.js`, the unused `clearApiKey` message case, the no-op `onDidChangeVisibility` handler.
-- [ ] **11. Bundle with esbuild.** Output to `dist/extension.js`, point `main` at it, and exclude `node_modules` in `.vscodeignore` (it is currently shipped in the .vsix).
+- [x] **7. Rename `lec7` → `codesense`** for all command, view, and container ids in `package.json` and code.
+- [x] **8. Move webview code out of `ChatViewProvider.js`** into `media/main.js` and `media/style.css`, loaded via `webview.asWebviewUri(...)` with the nonce on the script tag. Goal: `ChatViewProvider.js` under ~300 lines.
+- [x] **9. Split `index.js`.** Move extension tools to `src/tools.js`. Either delete the standalone CLI agent (`CodeReviewAgent` / duplicate `run()` loop) or move it to `cli/`. Remove `readline-sync` and `dotenv` from extension dependencies if unused.
+- [x] **10. Remove dead code**: commented-out blocks in `extension.js` and `index.js`, the stale ESM comment at the top of `ChatViewProvider.js`, the unused `run()` in `MultiProviderAgent.js`, the unused `clearApiKey` message case, the no-op `onDidChangeVisibility` handler.
+- [x] **11. Bundle with esbuild.** Output to `dist/extension.js`, point `main` at it, and exclude `node_modules` in `.vscodeignore` (it is currently shipped in the .vsix).
 
 ### Phase 3 — Quality
 

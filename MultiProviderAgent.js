@@ -1,4 +1,4 @@
-const { GoogleGenAI, Type } = require("@google/genai");
+const { GoogleGenAI } = require("@google/genai");
 const OpenAI = require("openai");
 const path = require("path");
 
@@ -166,27 +166,6 @@ class MultiProviderAgent {
     return sanitized;
   }
 
-  /**
-   * Simple validation check (legacy method for compatibility)
-   */
-  _validateHistory(history) {
-    if (!history || history.length === 0) return true;
-    
-    const lastMessage = history[history.length - 1];
-    
-    // History should not end with a model function call
-    if (lastMessage.role === 'model' && lastMessage.parts.some(p => p.functionCall)) {
-      return false;
-    }
-    
-    // First message must be user
-    if (history[0].role !== 'user') {
-      return false;
-    }
-
-    return true;
-  }
-
   async generateContent(config) {
     const normalizedProvider = this.provider.toLowerCase();
 
@@ -341,138 +320,6 @@ class MultiProviderAgent {
       text: () => message.content || '',
       functionCalls: []
     };
-  }
-
-  async run(directoryPath, interactionCallback, toolFunctions, tools) {
-    const normalizedProvider = this.provider.toLowerCase();
-
-    if (!normalizedProvider.includes('gemini') && !normalizedProvider.includes('google') &&
-      !normalizedProvider.includes('openai') && !normalizedProvider.includes('gpt')) {
-      throw new Error(`${this.provider} is not yet fully implemented. Please use Google Gemini or OpenAI.`);
-    }
-
-    console.log(`Starting Code Review with ${this.provider}...`);
-    console.log(`Target: ${directoryPath}\n`);
-
-    const initialPrompt = {
-      role: "user",
-      parts: [{ text: `Review and improve the codebase in: ${directoryPath}. If there are tests, run them. If there are bugs, fix them.` }],
-    };
-
-    const History = [initialPrompt];
-    const MAX_HISTORY_LENGTH = 20;
-
-    const trimHistory = () => {
-      if (History.length > MAX_HISTORY_LENGTH) {
-        const recentMessages = History.slice(-(MAX_HISTORY_LENGTH - 1));
-        History.length = 0;
-        History.push(initialPrompt, ...recentMessages);
-        console.log(`📊 History trimmed to ${MAX_HISTORY_LENGTH} messages to save tokens`);
-      }
-    };
-
-    while (true) {
-      // Sanitize history before each API call
-      const sanitizedHistory = this._validateAndSanitizeHistory(History);
-      History.length = 0;
-      History.push(...(sanitizedHistory.length > 0 ? sanitizedHistory : [initialPrompt]));
-
-      let result;
-      try {
-        result = await this.generateContent({
-          model: this.model,
-          contents: History,
-          config: {
-            systemInstruction: `You are an AI Code Engineer assistant in a chat interface.
-
-COMMUNICATION STYLE:
-- Be conversational and direct - you're chatting, not writing documentation
-- Use short, clear sentences
-- Avoid bullet points and formal lists in responses
-- Don't introduce yourself repeatedly
-- Get straight to the point
-
-YOUR CAPABILITIES:
-You can read/write/delete files, create directories, and run terminal commands to analyze and fix code.
-
-WORKFLOW:
-1. When asked to create/build/make something: do it immediately, create all necessary files
-2. When asked to review code: explore the directory, read key files, identify issues
-3. When asked to fix bugs: analyze, then apply fixes directly
-4. After making changes, briefly confirm what you did
-
-IMPORTANT:
-- Execute file operations immediately when requested
-- Keep responses short and chat-like
-- Use emojis sparingly (🔴 for critical bugs, 🟡 for improvements)
-- Focus on doing what the user asked
-
-Now help the user with their code.`,
-            tools,
-          },
-        });
-      } catch (apiError) {
-        const errorMsg = apiError.message || String(apiError);
-        if (errorMsg.includes('function call turn') || errorMsg.includes('INVALID_ARGUMENT')) {
-          console.error('🔴 Conversation state error, resetting:', errorMsg);
-          History.length = 0;
-          History.push(initialPrompt);
-          continue;
-        }
-        throw apiError;
-      }
-
-      if (result.functionCalls?.length > 0) {
-        // Add the model's function call to history FIRST
-        History.push({ 
-          role: "model", 
-          parts: result.functionCalls.map(fc => ({ functionCall: fc }))
-        });
-
-        // Execute all function calls and collect responses
-        const functionResponses = [];
-        for (const functionCall of result.functionCalls) {
-          const { name, args } = functionCall;
-
-          console.log(`🔧 Tool: ${name}`);
-          
-          try {
-            const toolResponse = await toolFunctions[name](args);
-            functionResponses.push({
-              functionResponse: { 
-                name, 
-                response: { result: toolResponse } 
-              }
-            });
-          } catch (toolError) {
-            console.error(`🔴 Tool error for ${name}:`, toolError.message);
-            functionResponses.push({
-              functionResponse: { 
-                name, 
-                response: { error: toolError.message } 
-              }
-            });
-          }
-        }
-
-        // Add all function responses in a single user turn
-        // CRITICAL: function responses must be in a "user" turn for Gemini
-        History.push({
-          role: "user",
-          parts: functionResponses
-        });
-      } else {
-        let text = (typeof result.text === "function" ? result.text() : result.text) || "";
-        text = text.trim();
-
-        if (!text) break;
-
-        console.log("\n🤖 AI:", text);
-        History.push({ role: "model", parts: [{ text }] });
-      }
-
-      trimHistory();
-    }
   }
 
   /**

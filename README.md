@@ -123,13 +123,14 @@ No manual configuration files needed!
 CodeSense/
 ├── src/
 │   ├── extension.js          # Extension entry point
-│   ├── ChatViewProvider.js   # Webview UI and logic
+│   ├── ChatViewProvider.js   # Webview host: messages, history, agent runs
+│   ├── tools.js              # Agent tool functions and declarations
 │   └── diffUtil.js           # Diff visualization utility
 ├── media/
 │   ├── icon.svg              # Extension icon
+│   ├── index.html            # Webview markup
 │   ├── main.js               # Webview frontend
 │   └── style.css             # Webview styles
-├── index.js                  # Agent tool functions
 ├── MultiProviderAgent.js     # AI provider abstraction
 └── package.json              # Extension manifest
 ```
@@ -146,21 +147,9 @@ CodeSense/
    code .
    ```
 
-3. Press `F5` to launch Extension Development Host
+3. Press `F5` to bundle the extension into `dist/` and launch the Extension Development Host. While working, `npm run watch` rebuilds on save; reload the host window to pick up changes.
 
 4. Open any workspace and test the extension
-
-## Standalone CLI Mode
-
-The agent can also run standalone (outside VS Code):
-
-```bash
-# Set your API key
-echo "GEMINI_API_KEY=your_key_here" > .env
-
-# Run the agent
-node index.js
-```
 
 ## Contributing
 
@@ -215,7 +204,7 @@ MIT License - see LICENSE file for details
 - [ ] Custom prompt templates
 - [ ] Export conversations to markdown
 - [ ] Settings UI for customization
-- [ ] Code bundling for reduced extension size
+- [x] Code bundling for reduced extension size
 
 ## Author
 

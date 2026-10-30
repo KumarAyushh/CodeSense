@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Command and view ids changed from `lec7.*` to `codesense.*`. Custom keybindings for the old command ids need updating, and the sidebar may return to its default position once.
+- The extension is now bundled into a single file, which makes the download much smaller.
+
+### Removed
+
+- The standalone CLI mode (`node index.js`).
+
+### Fixed
+
+- The API key screen no longer says keys never leave your machine. They are sent to the provider you choose.
+
 ## 1.0.8
 
 ### Security

@@ -32,32 +32,32 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./src/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "lec7.addApiKey",
+        "command": "codesense.addApiKey",
         "title": "CodeSense: Add API Key"
       },
       {
-        "command": "lec7.resetApiKey",
+        "command": "codesense.resetApiKey",
         "title": "CodeSense: Reset API Key"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "lec7-container",
+          "id": "codesense-container",
           "title": "CodeSense AI",
           "icon": "media/codesense.svg"
         }
       ]
     },
     "views": {
-      "lec7-container": [
+      "codesense-container": [
         {
           "type": "webview",
-          "id": "lec7.chatView",
+          "id": "codesense.chatView",
           "name": "AI Chat",
           "icon": "media/codesense.svg"
         }
@@ -73,16 +73,19 @@
   },
   "homepage": "https://github.com/KumarAyushh/CodeSense#readme",
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "bundle": "esbuild src/extension.js --bundle --platform=node --target=node16 --external:vscode --outfile=dist/extension.js",
+    "build": "npm run bundle -- --sourcemap",
+    "watch": "npm run bundle -- --sourcemap --watch",
+    "vscode:prepublish": "npm run bundle -- --minify"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
-    "dotenv": "^17.2.3",
-    "openai": "^6.15.0",
-    "readline-sync": "^1.4.10"
+    "openai": "^6.15.0"
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
+    "esbuild": "^0.28.2",
     "eslint": "^8.41.0"
   }
 }
