@@ -6,11 +6,12 @@ CodeSense AI is a VS Code extension (published on the Marketplace as `kumarayush
 
 ```
 src/extension.js          Activation, command registration (addApiKey, resetApiKey)
-src/ChatViewProvider.js   Webview sidebar: message handling, history, and (currently) ~1,200 lines of inline HTML/CSS/JS
+src/ChatViewProvider.js   Webview sidebar: message handling, history, loads the page from media/
+src/tools.js              Tool implementations + tool declarations (no vscode import, so it can be tested in plain Node)
 src/diffUtil.js           Opens a VS Code diff view after a file is overwritten; cleans temp diff files
 MultiProviderAgent.js     Agent loop (runWithMessage), Gemini <-> OpenAI format conversion, history sanitizing
-index.js                  Tool implementations + tool declarations, plus an old standalone CLI agent (to be split out)
-media/main.js, style.css  Currently UNUSED (webview code is inlined in ChatViewProvider.js)
+media/index.html          Webview markup; {{placeholders}} are filled by _getHtmlForWebview
+media/main.js, style.css  Webview frontend, loaded via asWebviewUri
 ```
 
 ## Commands
@@ -84,8 +85,8 @@ npm run lint         # eslint
 ### Phase 2 — Cleanup
 
 - [x] **7. Rename `lec7` → `codesense`** for all command, view, and container ids in `package.json` and code.
-- [ ] **8. Move webview code out of `ChatViewProvider.js`** into `media/main.js` and `media/style.css`, loaded via `webview.asWebviewUri(...)` with the nonce on the script tag. Goal: `ChatViewProvider.js` under ~300 lines.
-- [ ] **9. Split `index.js`.** Move extension tools to `src/tools.js`. Either delete the standalone CLI agent (`CodeReviewAgent` / duplicate `run()` loop) or move it to `cli/`. Remove `readline-sync` and `dotenv` from extension dependencies if unused.
+- [x] **8. Move webview code out of `ChatViewProvider.js`** into `media/main.js` and `media/style.css`, loaded via `webview.asWebviewUri(...)` with the nonce on the script tag. Goal: `ChatViewProvider.js` under ~300 lines.
+- [x] **9. Split `index.js`.** Move extension tools to `src/tools.js`. Either delete the standalone CLI agent (`CodeReviewAgent` / duplicate `run()` loop) or move it to `cli/`. Remove `readline-sync` and `dotenv` from extension dependencies if unused.
 - [ ] **10. Remove dead code**: commented-out blocks in `extension.js` and `index.js`, the stale ESM comment at the top of `ChatViewProvider.js`, the unused `run()` in `MultiProviderAgent.js`, the unused `clearApiKey` message case, the no-op `onDidChangeVisibility` handler.
 - [ ] **11. Bundle with esbuild.** Output to `dist/extension.js`, point `main` at it, and exclude `node_modules` in `.vscodeignore` (it is currently shipped in the .vsix).
 

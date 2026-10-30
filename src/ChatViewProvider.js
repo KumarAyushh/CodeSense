@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
+const { showDiff } = require('./diffUtil');
 
 // We need to import the agent using dynamic import because index.js is an ES Module
 // or we need to bundle it. For simplicity in this environment, let's try dynamic import.
@@ -127,8 +128,8 @@ class ChatViewProvider {
     if (!this._agent) {
       try {
         // Load the multi-provider agent
-        const { MultiProviderAgent } = require(path.join(this._extensionUri.fsPath, 'MultiProviderAgent.js'));
-        const { createTools, tools } = require(path.join(this._extensionUri.fsPath, 'index.js'));
+        const { MultiProviderAgent } = require('../MultiProviderAgent');
+        const { createTools, tools } = require('./tools');
 
         this._agent = new MultiProviderAgent(provider, apiKey);
         this._createTools = createTools;
@@ -172,7 +173,8 @@ class ChatViewProvider {
         confirm: async (message) => {
           const choice = await vscode.window.showWarningMessage(message, { modal: true }, 'Allow');
           return choice === 'Allow';
-        }
+        },
+        showDiff
       });
       await this._agent.runWithMessage(workspacePath, text, interactionCallback, messageCallback, activityCallback, toolFunctions, this._tools);
 
