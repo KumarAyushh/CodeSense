@@ -14,6 +14,7 @@
 ### Fixed
 
 - The API key screen no longer says keys never leave your machine. They are sent to the provider you choose.
+- File and folder names that start with two dots, such as `..config`, are no longer refused as outside the workspace.
 
 ## 1.0.8
 

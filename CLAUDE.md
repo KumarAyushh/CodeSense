@@ -12,6 +12,7 @@ src/diffUtil.js           Opens a VS Code diff view after a file is overwritten;
 MultiProviderAgent.js     Agent loop (runWithMessage), Gemini <-> OpenAI format conversion, history sanitizing
 media/index.html          Webview markup; {{placeholders}} are filled by _getHtmlForWebview
 media/main.js, style.css  Webview frontend, loaded via asWebviewUri
+test/                     Unit tests for pure logic (sandbox paths, history sanitizing, OpenAI conversion)
 ```
 
 ## Commands
@@ -19,6 +20,7 @@ media/main.js, style.css  Webview frontend, loaded via asWebviewUri
 ```bash
 npm install          # install dependencies
 npm run lint         # eslint
+npm test             # node:test, runs test/*.test.js
 npm run build        # bundle src/ into dist/extension.js (npm run watch to rebuild on save)
 # Run the extension: open in VS Code and press F5 (builds, then opens the Extension Development Host)
 # Publish: npx @vscode/vsce publish patch   (needs Marketplace PAT)
@@ -93,7 +95,7 @@ npm run build        # bundle src/ into dist/extension.js (npm run watch to rebu
 
 ### Phase 3 — Quality
 
-- [ ] **12. Add tests** (`node:test` or mocha) for pure logic:
+- [x] **12. Add tests** (`node:test` or mocha) for pure logic:
   - `resolveInWorkspace` (inside, `../`, absolute path, root itself)
   - `_validateAndSanitizeHistory` (orphan function calls, trailing call, history starting with model)
   - OpenAI conversion round trip (multiple tool calls, ids match)
