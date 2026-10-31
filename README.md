@@ -17,12 +17,6 @@ Giving a model access to your disk and shell is risky, so the project is built a
 
 CodeSense is published on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=kumarayushh.codesense-ai), with 400+ downloads and 65+ installs.
 
-> **Marketplace users:** the Marketplace currently has a December 2025 build of 1.0.8. It **does not include** the workspace sandbox, the approval prompts, or the command limits described here. To get them before the next release, [build from source](#installation).
-
-## Demo
-
-`[TODO: add a demo GIF showing a list -> read -> write -> test task]`
-
 ## Key Features
 
 - **Runs a multi-step agent loop** of up to 15 model turns per message, feeding each tool result back to the model.
@@ -52,7 +46,6 @@ Before is commit [`1469529`](https://github.com/KumarAyushh/CodeSense/commit/146
 | Activation step alone | 4 ms | 30 ms | **About 7x slower (trade-off)** |
 | `ChatViewProvider.js` | 2,228 lines | 274 lines | 87.7% smaller |
 | Unit tests | 0 | 38 | 38 added |
-| Activation in a real Extension Host | `[TODO: measure]` | `[TODO: measure]` | `[TODO: calculate]` |
 
 **The trade-off:** bundling makes activation slower because all the code is parsed in one file at startup, but the much larger cost of loading the SDKs from `node_modules` on the first message goes away. The net effect is a 143 ms saving.
 
@@ -60,7 +53,7 @@ Before is commit [`1469529`](https://github.com/KumarAyushh/CodeSense/commit/146
 
 - Both versions were packaged with the same `vsce` 4.1.0.
 - Load times are medians across 62 Node.js processes with a stubbed `vscode` API and a warm disk cache. They show the relative difference between the builds, not real VS Code startup time.
-- Audit counts use today's advisory data. Ten moderate findings remain in development-only tools, which are not shipped.
+- Audit counts use advisory data from the same date. Ten moderate findings remain in development-only tools, which are not shipped.
 - `ChatViewProvider.js` shrank mostly because its webview code moved to `media/`, so this shows better separation rather than less code.
 - Line coverage is 55.31% across the source files the tests load: `MultiProviderAgent.js` 77.45%, `extension.js` 61.54%, `tools.js` 40.50%, and `ChatViewProvider.js` 26.64%. `diffUtil.js` and `media/main.js` aren't exercised by the unit tests.
 
@@ -128,17 +121,17 @@ flowchart LR
 
 ### Installation
 
-**From source (includes the security model):**
+**From the Marketplace:** install [CodeSense AI](https://marketplace.visualstudio.com/items?itemName=kumarayushh.codesense-ai).
+
+**From source:**
 
 ```bash
 git clone https://github.com/KumarAyushh/CodeSense.git
 cd CodeSense
 npm install
 npx vsce package
-code --install-extension codesense-ai-1.0.8.vsix
+code --install-extension codesense-ai-1.1.0.vsix
 ```
-
-**From the Marketplace:** install [CodeSense AI](https://marketplace.visualstudio.com/items?itemName=kumarayushh.codesense-ai). Note the [build warning](#overview) above.
 
 ### Environment variables
 
@@ -242,7 +235,7 @@ CodeSense/
 
 ## Changelog / Recent Updates
 
-These changes are in the repository and will ship in the next release. See [CHANGELOG.md](CHANGELOG.md) for the full list.
+Version 1.1.0 includes these changes. See [CHANGELOG.md](CHANGELOG.md) for the full list.
 
 - **Security:** added the workspace sandbox, approval prompts, command limits, and stricter webview security.
 - **OpenAI:** fixed multi-step tasks by keeping tool call ids and supporting several calls in one turn.
@@ -255,7 +248,6 @@ These changes are in the repository and will ship in the next release. See [CHAN
 
 ## Roadmap
 
-- [ ] Publish the release that brings these changes to the Marketplace
 - [ ] Preview changes before writing, with Accept and Reject buttons
 - [ ] Add a Review workspace command that grounds reviews in real ESLint and test output
 - [ ] Add a demo GIF and a how-it-works write-up
@@ -280,4 +272,3 @@ Released under the [MIT License](LICENSE).
 **Kumar Ayush**
 
 - GitHub: [@KumarAyushh](https://github.com/KumarAyushh)
-- LinkedIn: `[TODO: add LinkedIn URL]`
