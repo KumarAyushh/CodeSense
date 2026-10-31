@@ -2,6 +2,8 @@ const { GoogleGenAI } = require("@google/genai");
 const OpenAI = require("openai");
 const path = require("path");
 
+const DEFAULT_MODELS = { gemini: "gemini-2.5-flash", openai: "gpt-4o" };
+
 /**
  * Multi-Provider AI Agent supporting Gemini, OpenAI, Anthropic, and Groq
  */
@@ -14,6 +16,14 @@ class MultiProviderAgent {
     this.abortController = null;
 
     this._initializeClient();
+    this.setModels();
+  }
+
+  /**
+   * Choose the model for this provider. Blank or missing names use the default.
+   */
+  setModels(models = {}) {
+    this.model = models[this.modelKey] || DEFAULT_MODELS[this.modelKey];
   }
 
   _initializeClient() {
@@ -22,10 +32,10 @@ class MultiProviderAgent {
 
     if (normalizedProvider.includes('gemini') || normalizedProvider.includes('google')) {
       this.client = new GoogleGenAI({ apiKey: this.apiKey });
-      this.model = "gemini-2.5-flash";
+      this.modelKey = 'gemini';
     } else if (normalizedProvider.includes('openai') || normalizedProvider.includes('gpt')) {
       this.client = new OpenAI({ apiKey: this.apiKey });
-      this.model = "gpt-4o";
+      this.modelKey = 'openai';
     } else if (normalizedProvider.includes('anthropic') || normalizedProvider.includes('claude')) {
       this.model = "claude-3-5-sonnet-20241022";
       console.log("⚠️ Anthropic support requires '@anthropic-ai/sdk' package");

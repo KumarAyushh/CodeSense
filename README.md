@@ -65,7 +65,7 @@ Or install from a VSIX file (manual install):
 ## Supported AI Providers
 
 - ✅ **Google Gemini** (fully implemented)
-- ✅ **OpenAI** (GPT-4o)
+- ✅ **OpenAI** (GPT-4o by default)
 - 🚧 **Anthropic Claude** (coming soon)
 - 🚧 **Groq** (coming soon)
 
@@ -116,7 +116,14 @@ The extension stores settings securely:
 - `ai_provider` - Selected AI provider
 - `ai_api_key` - Your API key (encrypted)
 
-No manual configuration files needed!
+To choose a different model, change these in VS Code Settings. Changes apply from your next message.
+
+| Setting | Default |
+| --- | --- |
+| `codesense.model.gemini` | `gemini-2.5-flash` |
+| `codesense.model.openai` | `gpt-4o` |
+
+The model must support tool calling, because the AI uses tools to read and change files.
 
 ## Development
 

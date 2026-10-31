@@ -120,6 +120,10 @@ class ChatViewProvider {
       }
     }
 
+    // Read on every message so a changed setting keeps the current conversation
+    const config = vscode.workspace.getConfiguration('codesense');
+    this._agent.setModels({ gemini: config.get('model.gemini'), openai: config.get('model.openai') });
+
     // Identify Workspace
     let workspacePath = '';
     if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {

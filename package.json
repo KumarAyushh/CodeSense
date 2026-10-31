@@ -44,6 +44,21 @@
         "title": "CodeSense: Reset API Key"
       }
     ],
+    "configuration": {
+      "title": "CodeSense AI",
+      "properties": {
+        "codesense.model.gemini": {
+          "type": "string",
+          "default": "gemini-2.5-flash",
+          "description": "Gemini model to use, for example gemini-2.5-flash. Leave empty for the default."
+        },
+        "codesense.model.openai": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "OpenAI model to use, for example gpt-4o. The model must support tool calling. Leave empty for the default."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {

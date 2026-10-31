@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- `codesense.model.gemini` and `codesense.model.openai` settings choose the model. Changes apply from your next message and keep the current conversation.
+
 ### Changed
 
 - Command and view ids changed from `lec7.*` to `codesense.*`. Custom keybindings for the old command ids need updating, and the sidebar may return to its default position once.

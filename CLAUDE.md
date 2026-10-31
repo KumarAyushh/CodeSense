@@ -100,7 +100,7 @@ npm run build        # bundle src/ into dist/extension.js (npm run watch to rebu
   - `_validateAndSanitizeHistory` (orphan function calls, trailing call, history starting with model)
   - OpenAI conversion round trip (multiple tool calls, ids match)
 - [x] **13. ESLint config + GitHub Actions CI** running `npm ci`, lint, tests, and `vsce package` on every push/PR. Add the CI badge to the README.
-- [ ] **14. Settings for models.** Replace hard-coded `gemini-2.5-flash` / `gpt-4o` with `codesense.model.gemini` / `codesense.model.openai` settings in `contributes.configuration`.
+- [x] **14. Settings for models.** Replace hard-coded `gemini-2.5-flash` / `gpt-4o` with `codesense.model.gemini` / `codesense.model.openai` settings in `contributes.configuration`.
 - [ ] **Release 1.1.0** — CHANGELOG, publish.
 
 ### Phase 4 — New features (pick 1–2 that make the project stand out)
