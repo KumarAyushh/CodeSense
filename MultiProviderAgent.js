@@ -67,12 +67,13 @@ class MultiProviderAgent {
         return `Creating folder ${path.basename(args.directory_path || 'folder')}`;
       case 'listDirectory':
         return `Scanning ${path.basename(args.directory || 'directory')}`;
-      case 'runTerminalCommand':
+      case 'runTerminalCommand': {
         const cmd = args.command || '';
         if (cmd.startsWith('npm ')) return `Running npm ${cmd.split(' ')[1] || 'command'}`;
         if (cmd.startsWith('node ')) return `Executing ${path.basename(cmd.split(' ')[1] || 'script')}`;
         if (cmd.startsWith('git ')) return `Git ${cmd.split(' ')[1] || 'command'}`;
         return `Running command`;
+      }
       default:
         return toolName;
     }

@@ -86,6 +86,7 @@
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^8.41.0"
   }

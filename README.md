@@ -1,5 +1,7 @@
 # CodeSense AI - VS Code Extension
 
+[![CI](https://github.com/KumarAyushh/CodeSense/actions/workflows/ci.yml/badge.svg)](https://github.com/KumarAyushh/CodeSense/actions/workflows/ci.yml)
+
 An intelligent AI-powered code reviewer and assistant built directly into VS Code.
 
 ## Features
