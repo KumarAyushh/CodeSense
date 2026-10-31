@@ -11,7 +11,7 @@ const SKIPPED_DIRS = new Set(["node_modules", "dist", "build", ".git"]);
 
 function assertInWorkspace(root, full, p) {
   const rel = path.relative(root, full);
-  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+  if (rel === ".." || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel)) {
     throw new Error(`Path outside workspace: ${p}`);
   }
 }

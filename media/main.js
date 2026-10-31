@@ -195,7 +195,6 @@ messagesContainer.addEventListener('click', (e) => {
 });
 
 // Track AI processing state
-let isAIProcessing = false;
 
 // Track where we came from for cancel button
 let previousScreen = 'welcome';
@@ -542,8 +541,7 @@ function sendMessage() {
   vscode.postMessage({ type: 'userMessage', text });
   inputs.message.value = '';
   
-  // Set AI processing state and toggle buttons
-  isAIProcessing = true;
+  // Toggle buttons
   buttons.send.classList.add('hidden');
   buttons.stop.classList.remove('hidden');
   
@@ -566,7 +564,6 @@ buttons.send.addEventListener('click', sendMessage);
 
 // Stop button handler
 buttons.stop.addEventListener('click', () => {
-  isAIProcessing = false;
   buttons.stop.classList.add('hidden');
   buttons.send.classList.remove('hidden');
   
@@ -601,14 +598,12 @@ window.addEventListener('message', event => {
       break;
     case 'aiResponse':
       // Remove typing indicators and activity container when AI responds
-      const aiIndicators = document.querySelectorAll('.message.ai .content.typing');
-      aiIndicators.forEach(el => el.closest('.message').remove());
+      document.querySelectorAll('.message.ai .content.typing').forEach(el => el.closest('.message').remove());
       
       // Clear activity container
       clearActivityContainer();
       
       // Reset buttons
-      isAIProcessing = false;
       buttons.stop.classList.add('hidden');
       buttons.send.classList.remove('hidden');
       
@@ -616,14 +611,12 @@ window.addEventListener('message', event => {
       break;
     case 'systemMessage':
       // System messages are displayed but NOT saved to conversation history
-      const sysIndicators = document.querySelectorAll('.message.ai .content.typing');
-      sysIndicators.forEach(el => el.closest('.message').remove());
+      document.querySelectorAll('.message.ai .content.typing').forEach(el => el.closest('.message').remove());
       
       // Clear activity container
       clearActivityContainer();
       
       // Reset buttons
-      isAIProcessing = false;
       buttons.stop.classList.add('hidden');
       buttons.send.classList.remove('hidden');
       

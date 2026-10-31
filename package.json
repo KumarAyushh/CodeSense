@@ -44,6 +44,21 @@
         "title": "CodeSense: Reset API Key"
       }
     ],
+    "configuration": {
+      "title": "CodeSense AI",
+      "properties": {
+        "codesense.model.gemini": {
+          "type": "string",
+          "default": "gemini-2.5-flash",
+          "description": "Gemini model to use, for example gemini-2.5-flash. Leave empty for the default."
+        },
+        "codesense.model.openai": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "OpenAI model to use, for example gpt-4o. The model must support tool calling. Leave empty for the default."
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -77,7 +92,8 @@
     "bundle": "esbuild src/extension.js --bundle --platform=node --target=node16 --external:vscode --outfile=dist/extension.js",
     "build": "npm run bundle -- --sourcemap",
     "watch": "npm run bundle -- --sourcemap --watch",
-    "vscode:prepublish": "npm run bundle -- --minify"
+    "vscode:prepublish": "npm run bundle -- --minify",
+    "test": "node --test"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
@@ -85,6 +101,7 @@
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
+    "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^8.41.0"
   }

@@ -10,7 +10,7 @@ class ChatViewProvider {
     this._agent = null;
   }
 
-  async resolveWebviewView(webviewView, context, _token) {
+  async resolveWebviewView(webviewView) {
     this._view = webviewView;
 
     webviewView.webview.options = {
@@ -34,7 +34,7 @@ class ChatViewProvider {
           await this._context.secrets.store('ai_api_key', data.key);
           this._view.webview.postMessage({ type: 'systemMessage', text: `${data.provider} API Key saved successfully! You can now start chatting.` });
           break;
-        case 'resetApiKey':
+        case 'resetApiKey': {
           // Reset API Key - delete all stored keys
           const keysToDelete = [
             'ai_api_key',
@@ -58,6 +58,7 @@ class ChatViewProvider {
           this._view.webview.postMessage({ type: 'systemMessage', text: '✅ API key reset successfully. Please enter your API key to continue.' });
           this._view.webview.postMessage({ type: 'requestApiKey' });
           break;
+        }
         case 'stopGeneration':
           // Stop ongoing AI generation
           if (this._agent) {
@@ -73,13 +74,11 @@ class ChatViewProvider {
           await this._saveConversation(data.conversation);
           break;
         case 'fetchHistory':
-          const history = await this._getConversations();
-          this._view.webview.postMessage({ type: 'historyList', conversations: history });
+          this._view.webview.postMessage({ type: 'historyList', conversations: await this._getConversations() });
           break;
         case 'deleteHistory':
           await this._deleteConversation(data.id);
-          const updatedHistory = await this._getConversations();
-          this._view.webview.postMessage({ type: 'historyList', conversations: updatedHistory });
+          this._view.webview.postMessage({ type: 'historyList', conversations: await this._getConversations() });
           break;
       }
     });
@@ -120,6 +119,10 @@ class ChatViewProvider {
         return;
       }
     }
+
+    // Read on every message so a changed setting keeps the current conversation
+    const config = vscode.workspace.getConfiguration('codesense');
+    this._agent.setModels({ gemini: config.get('model.gemini'), openai: config.get('model.openai') });
 
     // Identify Workspace
     let workspacePath = '';
