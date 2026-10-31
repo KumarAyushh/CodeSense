@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Security
+
+- Updated bundled dependencies to fix known vulnerabilities, including `ws`.
+
 ### Added
 
 - `codesense.model.gemini` and `codesense.model.openai` settings choose the model. Changes apply from your next message and keep the current conversation.
@@ -19,6 +23,8 @@
 
 - The API key screen no longer says keys never leave your machine. They are sent to the provider you choose.
 - File and folder names that start with two dots, such as `..config`, are no longer refused as outside the workspace.
+- The **CodeSense: Add API Key** command now works. It used to save keys where the AI never read them. It also no longer offers Anthropic and Groq, which aren't available yet.
+- A new API key now takes effect on your next message instead of possibly staying on the old key until VS Code reloads. Saving a key starts a new AI conversation.
 
 ## 1.0.8
 

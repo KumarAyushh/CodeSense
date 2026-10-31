@@ -30,8 +30,7 @@ class ChatViewProvider {
           await this._handleUserMessage(data.text);
           break;
         case 'saveApiKey':
-          await this._context.secrets.store('ai_provider', data.provider);
-          await this._context.secrets.store('ai_api_key', data.key);
+          await this.saveCredentials(data.provider, data.key);
           this._view.webview.postMessage({ type: 'systemMessage', text: `${data.provider} API Key saved successfully! You can now start chatting.` });
           break;
         case 'resetApiKey': {
@@ -82,6 +81,15 @@ class ChatViewProvider {
           break;
       }
     });
+  }
+
+  async saveCredentials(provider, key) {
+    await this._context.secrets.store('ai_provider', provider);
+    await this._context.secrets.store('ai_api_key', key);
+    // The agent keeps the key it was built with, so the next message needs a new one
+    this._agent = null;
+    // The sidebar may not have been opened yet
+    this._view?.webview.postMessage({ type: 'switchToChat' });
   }
 
   async _initializeWebview() {
