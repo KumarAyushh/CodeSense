@@ -18,25 +18,27 @@ async function activate(context) {
     // 🔹 Command fallback (optional manual key entry)
     context.subscriptions.push(
         vscode.commands.registerCommand('codesense.addApiKey', async () => {
-            const provider = await vscode.window.showQuickPick(
-                ['Google Gemini', 'OpenAI', 'Anthropic', 'Groq'],
+            const choice = await vscode.window.showQuickPick(
+                [
+                    { label: 'Google Gemini', id: 'gemini' },
+                    { label: 'OpenAI', id: 'openai' }
+                ],
                 { placeHolder: 'Select AI Provider' }
             );
 
-            if (!provider) return;
+            if (!choice) return;
 
-            const key = await vscode.window.showInputBox({
-                prompt: `Enter your ${provider} API Key`,
+            const key = (await vscode.window.showInputBox({
+                prompt: `Enter your ${choice.label} API Key`,
                 password: true,
                 ignoreFocusOut: true
-            });
+            }))?.trim();
 
             if (!key) return;
 
-            const secretKey = `${provider.toLowerCase().replace(/\s/g, '_')}_api_key`;
-            await context.secrets.store(secretKey, key);
+            await provider.saveCredentials(choice.id, key);
 
-            vscode.window.showInformationMessage(`${provider} API key saved securely.`);
+            vscode.window.showInformationMessage(`${choice.label} API key saved securely.`);
         })
     );
 

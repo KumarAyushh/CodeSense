@@ -591,6 +591,8 @@ window.addEventListener('message', event => {
 
   switch (message.type) {
     case 'switchToChat':
+      apiConfigured = true;
+      saveState();
       showScreen('chat');
       break;
     case 'activityUpdate':
