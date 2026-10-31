@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Security
+
+- Updated bundled dependencies to fix known vulnerabilities, including `ws`.
+
 ### Added
 
 - `codesense.model.gemini` and `codesense.model.openai` settings choose the model. Changes apply from your next message and keep the current conversation.
